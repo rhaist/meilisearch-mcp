@@ -12,6 +12,7 @@ A Model Context Protocol (MCP) server for interacting with Meilisearch through L
 - Built-in logging and monitoring tools
 - Dynamic connection configuration to switch between Meilisearch instances
 - Smart search across single or multiple indices
+- This is a Python implementation, [there is Typescript integration if you need to work with a Meilisearch MCP server within the browser](https://github.com/devlimelabs/meilisearch-ts-mcp)
 
 ## Installation
 
