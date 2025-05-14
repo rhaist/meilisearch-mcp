@@ -130,7 +130,7 @@ class MeilisearchMCPServer:
                         "type": "object",
                         "properties": {
                             "indexUid": {"type": "string"},
-                            "documents": {"type": "array"},
+                            "documents": {"type": "array", "items": {"type": "object"}},
                             "primaryKey": {"type": "string", "optional": True},
                         },
                         "required": ["indexUid", "documents"],
@@ -237,8 +237,8 @@ class MeilisearchMCPServer:
                         "type": "object",
                         "properties": {
                             "description": {"type": "string", "optional": True},
-                            "actions": {"type": "array"},
-                            "indexes": {"type": "array"},
+                            "actions": {"type": "array", "items": {"type": "string"}},
+                            "indexes": {"type": "array", "items": {"type": "string"}},
                             "expiresAt": {"type": "string", "optional": True},
                         },
                         "required": ["actions", "indexes"],
