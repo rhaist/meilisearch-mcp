@@ -9,27 +9,44 @@ The tests require a running Meilisearch instance in the background.
 """
 
 import asyncio
-import os
 import json
+import os
+import time
 from typing import Dict, Any, List
 import pytest
 from unittest.mock import AsyncMock, patch
 
+from mcp.types import CallToolRequest, CallToolRequestParams, ListToolsRequest
 from src.meilisearch_mcp.server import MeilisearchMCPServer, create_server
+
+
+# Test configuration constants
+INDEXING_WAIT_TIME = 0.5
+TEST_URL = "http://localhost:7700"
+ALT_TEST_URL = "http://localhost:7701"
+ALT_TEST_URL_2 = "http://localhost:7702"
+TEST_API_KEY = "test_api_key_123"
+FINAL_TEST_KEY = "final_test_key"
+
+
+def generate_unique_index_name(prefix: str = "test") -> str:
+    """Generate a unique index name for testing"""
+    return f"{prefix}_{int(time.time() * 1000)}"
+
+
+async def wait_for_indexing() -> None:
+    """Wait for Meilisearch indexing to complete"""
+    await asyncio.sleep(INDEXING_WAIT_TIME)
 
 
 async def simulate_mcp_call(
     server: MeilisearchMCPServer, tool_name: str, arguments: Dict[str, Any] = None
-):
+) -> List[Any]:
     """Simulate an MCP client call to the server"""
-    from mcp.types import CallToolRequest, CallToolRequestParams
-
-    # Get the call_tool handler from request_handlers
     handler = server.server.request_handlers.get(CallToolRequest)
     if not handler:
         raise RuntimeError("No call_tool handler found")
 
-    # Create a proper CallToolRequest
     request = CallToolRequest(
         method="tools/call",
         params=CallToolRequestParams(name=tool_name, arguments=arguments or {}),
@@ -39,49 +56,70 @@ async def simulate_mcp_call(
     return result.root.content
 
 
-async def simulate_list_tools(server: MeilisearchMCPServer):
+async def simulate_list_tools(server: MeilisearchMCPServer) -> List[Any]:
     """Simulate an MCP client request to list tools"""
-    from mcp.types import ListToolsRequest
-
-    # Get the list_tools handler from request_handlers
     handler = server.server.request_handlers.get(ListToolsRequest)
     if not handler:
         raise RuntimeError("No list_tools handler found")
 
-    # Create a proper ListToolsRequest
     request = ListToolsRequest(method="tools/list")
-
     result = await handler(request)
     return result.root.tools
 
 
+async def create_test_index_with_documents(
+    server: MeilisearchMCPServer, index_name: str, documents: List[Dict[str, Any]]
+) -> None:
+    """Helper to create index and add documents for testing"""
+    await simulate_mcp_call(server, "create-index", {"uid": index_name})
+    await simulate_mcp_call(
+        server, "add-documents", {"indexUid": index_name, "documents": documents}
+    )
+    await wait_for_indexing()
+
+
+def assert_text_content_response(
+    result: List[Any], expected_content: str = None
+) -> str:
+    """Common assertions for text content responses"""
+    assert isinstance(result, list)
+    assert len(result) == 1
+    assert result[0].type == "text"
+
+    text = result[0].text
+    if expected_content:
+        assert expected_content in text
+
+    return text
+
+
+@pytest.fixture
+async def mcp_server():
+    """Shared fixture for creating MCP server instances"""
+    url = os.getenv("MEILI_HTTP_ADDR", TEST_URL)
+    api_key = os.getenv("MEILI_MASTER_KEY")
+
+    server = create_server(url, api_key)
+    yield server
+    await server.cleanup()
+
+
 class TestMCPClientIntegration:
     """Test MCP client interaction with the server"""
-
-    @pytest.fixture
-    async def mcp_server(self):
-        """Create and return an MCP server instance for testing"""
-        # Use test environment variables or defaults
-        url = os.getenv("MEILI_HTTP_ADDR", "http://localhost:7700")
-        api_key = os.getenv("MEILI_MASTER_KEY")
-
-        server = create_server(url, api_key)
-        yield server
-        await server.cleanup()
 
     async def test_tool_discovery(self, mcp_server):
         """Test that MCP client can discover all available tools from the server"""
         # Simulate MCP list_tools request
         tools = await simulate_list_tools(mcp_server)
 
-        # Verify we get the expected tools
+        tool_names = [tool.name for tool in tools]
+
+        # Verify basic structure
         assert isinstance(tools, list)
         assert len(tools) > 0
 
         # Check for essential tools
-        tool_names = [tool.name for tool in tools]
-
-        expected_tools = [
+        essential_tools = [
             "get-connection-settings",
             "update-connection-settings",
             "health-check",
@@ -96,50 +134,45 @@ class TestMCPClientIntegration:
             "update-settings",
         ]
 
-        for expected_tool in expected_tools:
-            assert (
-                expected_tool in tool_names
-            ), f"Tool '{expected_tool}' not found in discovered tools"
+        for tool_name in essential_tools:
+            assert tool_name in tool_names, f"Essential tool '{tool_name}' not found"
 
         # Verify tool structure
         for tool in tools:
-            assert hasattr(tool, "name")
-            assert hasattr(tool, "description")
-            assert hasattr(tool, "inputSchema")
-            assert isinstance(tool.name, str)
-            assert isinstance(tool.description, str)
-            assert isinstance(tool.inputSchema, dict)
+            assert all(
+                hasattr(tool, attr) for attr in ["name", "description", "inputSchema"]
+            )
+            assert all(
+                isinstance(getattr(tool, attr), expected_type)
+                for attr, expected_type in [
+                    ("name", str),
+                    ("description", str),
+                    ("inputSchema", dict),
+                ]
+            )
 
-        # Log discovered tools for debugging
         print(f"Discovered {len(tools)} tools: {tool_names}")
 
     async def test_connection_settings_verification(self, mcp_server):
         """Test connection settings tools to verify MCP client can connect to server"""
         # Test getting current connection settings
         result = await simulate_mcp_call(mcp_server, "get-connection-settings")
-
-        assert isinstance(result, list)
-        assert len(result) == 1
-        assert result[0].type == "text"
-        assert "Current connection settings:" in result[0].text
-        assert "URL:" in result[0].text
+        text = assert_text_content_response(result, "Current connection settings:")
+        assert "URL:" in text
 
         # Test updating connection settings
-        new_url = "http://localhost:7701"
         update_result = await simulate_mcp_call(
-            mcp_server, "update-connection-settings", {"url": new_url}
+            mcp_server, "update-connection-settings", {"url": ALT_TEST_URL}
         )
-
-        assert isinstance(update_result, list)
-        assert len(update_result) == 1
-        assert update_result[0].type == "text"
-        assert "Successfully updated connection settings" in update_result[0].text
-        assert new_url in update_result[0].text
+        update_text = assert_text_content_response(
+            update_result, "Successfully updated connection settings"
+        )
+        assert ALT_TEST_URL in update_text
 
         # Verify the update took effect
         verify_result = await simulate_mcp_call(mcp_server, "get-connection-settings")
-
-        assert new_url in verify_result[0].text
+        verify_text = assert_text_content_response(verify_result)
+        assert ALT_TEST_URL in verify_text
 
     async def test_health_check_tool(self, mcp_server):
         """Test health check tool through MCP client interface"""
@@ -148,26 +181,16 @@ class TestMCPClientIntegration:
             mcp_server.meili_client, "health_check", new_callable=AsyncMock
         ) as mock_health:
             mock_health.return_value = True
-
             result = await simulate_mcp_call(mcp_server, "health-check")
 
-            assert isinstance(result, list)
-            assert len(result) == 1
-            assert result[0].type == "text"
-            assert "available" in result[0].text
-
+            assert_text_content_response(result, "available")
             mock_health.assert_called_once()
 
     async def test_tool_error_handling(self, mcp_server):
         """Test that MCP client receives proper error responses from server"""
-        # Test calling a non-existent tool
         result = await simulate_mcp_call(mcp_server, "non-existent-tool")
-
-        assert isinstance(result, list)
-        assert len(result) == 1
-        assert result[0].type == "text"
-        assert "Error:" in result[0].text
-        assert "Unknown tool" in result[0].text
+        text = assert_text_content_response(result, "Error:")
+        assert "Unknown tool" in text
 
     async def test_tool_schema_validation(self, mcp_server):
         """Test that tools have proper input schemas for MCP client validation"""
@@ -204,18 +227,10 @@ class TestMCPClientIntegration:
 class TestMCPToolDiscovery:
     """Detailed tests for MCP tool discovery functionality"""
 
-    @pytest.fixture
-    async def server(self):
-        """Create server instance for tool discovery tests"""
-        url = os.getenv("MEILI_HTTP_ADDR", "http://localhost:7700")
-        api_key = os.getenv("MEILI_MASTER_KEY")
-        server = create_server(url, api_key)
-        yield server
-        await server.cleanup()
-
-    async def test_complete_tool_list(self, server):
+    async def test_complete_tool_list(self, mcp_server):
         """Test that all expected tools are discoverable by MCP clients"""
-        tools = await simulate_list_tools(server)
+        tools = await simulate_list_tools(mcp_server)
+        tool_names = [tool.name for tool in tools]
 
         # Complete list of expected tools (21 total)
         expected_tools = [
@@ -242,124 +257,95 @@ class TestMCPToolDiscovery:
             "get-system-info",
         ]
 
-        tool_names = [tool.name for tool in tools]
-
         assert len(tools) == len(expected_tools)
-        for expected_tool in expected_tools:
-            assert expected_tool in tool_names
+        for tool_name in expected_tools:
+            assert tool_name in tool_names
 
-    async def test_tool_categorization(self, server):
+    async def test_tool_categorization(self, mcp_server):
         """Test that tools can be categorized for MCP client organization"""
-        tools = await simulate_list_tools(server)
+        tools = await simulate_list_tools(mcp_server)
 
-        # Categorize tools
-        connection_tools = [t for t in tools if "connection" in t.name]
-        index_tools = [
-            t
-            for t in tools
-            if any(word in t.name for word in ["index", "create-index", "list-indexes"])
-        ]
-        document_tools = [t for t in tools if "document" in t.name]
-        search_tools = [t for t in tools if "search" in t.name]
-        task_tools = [t for t in tools if "task" in t.name]
-        key_tools = [t for t in tools if "key" in t.name]
-        monitoring_tools = [
-            t
-            for t in tools
-            if any(
-                word in t.name
-                for word in ["health", "stats", "version", "system", "metrics"]
-            )
-        ]
+        # Categorize tools by functionality
+        categories = {
+            "connection": [t for t in tools if "connection" in t.name],
+            "index": [
+                t
+                for t in tools
+                if any(
+                    word in t.name for word in ["index", "create-index", "list-indexes"]
+                )
+            ],
+            "document": [t for t in tools if "document" in t.name],
+            "search": [t for t in tools if "search" in t.name],
+            "task": [t for t in tools if "task" in t.name],
+            "key": [t for t in tools if "key" in t.name],
+            "monitoring": [
+                t
+                for t in tools
+                if any(
+                    word in t.name
+                    for word in ["health", "stats", "version", "system", "metrics"]
+                )
+            ],
+        }
 
-        # Verify each category has expected tools
-        assert len(connection_tools) >= 2  # get/update connection settings
-        assert len(index_tools) >= 2  # create/list indexes
-        assert len(document_tools) >= 2  # get/add documents
-        assert len(search_tools) >= 1  # search
-        assert len(task_tools) >= 2  # get-task/get-tasks/cancel-tasks
-        assert len(key_tools) >= 3  # get/create/delete keys
-        assert len(monitoring_tools) >= 4  # health-check, get-version, get-stats, etc.
+        # Verify minimum expected tools per category
+        expected_counts = {
+            "connection": 2,
+            "index": 2,
+            "document": 2,
+            "search": 1,
+            "task": 2,
+            "key": 3,
+            "monitoring": 4,
+        }
+
+        for category, min_count in expected_counts.items():
+            assert (
+                len(categories[category]) >= min_count
+            ), f"Category '{category}' has insufficient tools"
 
 
 class TestMCPConnectionSettings:
     """Detailed tests for MCP connection settings functionality"""
 
-    @pytest.fixture
-    async def server(self):
-        """Create server instance for connection tests"""
-        url = os.getenv("MEILI_HTTP_ADDR", "http://localhost:7700")
-        api_key = os.getenv("MEILI_MASTER_KEY")
-        server = create_server(url, api_key)
-        yield server
-        await server.cleanup()
-
-    async def test_get_connection_settings_format(self, server):
+    async def test_get_connection_settings_format(self, mcp_server):
         """Test connection settings response format for MCP clients"""
-        result = await simulate_mcp_call(server, "get-connection-settings")
+        result = await simulate_mcp_call(mcp_server, "get-connection-settings")
+        text = assert_text_content_response(result, "Current connection settings:")
 
-        assert len(result) == 1
-        text_content = result[0]
-        assert text_content.type == "text"
-
-        # Verify format contains expected information
-        text = text_content.text
-        assert "Current connection settings:" in text
-        assert "URL:" in text
-        assert "API Key:" in text
+        # Verify required fields are present
+        required_fields = ["URL:", "API Key:"]
+        for field in required_fields:
+            assert field in text
 
         # Check URL is properly displayed
-        assert server.url in text
+        assert mcp_server.url in text
 
         # Check API key is masked for security
-        if server.api_key:
-            assert "********" in text or "Not set" in text
-        else:
-            assert "Not set" in text
+        expected_key_display = "********" if mcp_server.api_key else "Not set"
+        assert expected_key_display in text or "Not set" in text
 
 
 class TestIssue16GetDocumentsJsonSerialization:
     """Test for issue #16 - get-documents should return JSON, not Python object representations"""
 
-    @pytest.fixture
-    async def server(self):
-        """Create server instance for issue #16 tests"""
-        url = os.getenv("MEILI_HTTP_ADDR", "http://localhost:7700")
-        api_key = os.getenv("MEILI_MASTER_KEY")
-        server = create_server(url, api_key)
-        yield server
-        await server.cleanup()
-
-    async def test_get_documents_returns_json_not_python_object(self, server):
+    async def test_get_documents_returns_json_not_python_object(self, mcp_server):
         """Test that get-documents returns JSON-formatted text, not Python object string representation (issue #16)"""
-        import time
-
-        test_index = f"test_issue16_{int(time.time() * 1000)}"
-
-        # Create index and add a test document
-        await simulate_mcp_call(server, "create-index", {"uid": test_index})
-
+        test_index = generate_unique_index_name("test_issue16")
         test_document = {"id": 1, "title": "Test Document", "content": "Test content"}
-        await simulate_mcp_call(
-            server,
-            "add-documents",
-            {"indexUid": test_index, "documents": [test_document]},
-        )
 
-        # Wait for indexing
-        import asyncio
-
-        await asyncio.sleep(0.5)
+        # Create index and add test document
+        await create_test_index_with_documents(mcp_server, test_index, [test_document])
 
         # Get documents with explicit parameters
         result = await simulate_mcp_call(
-            server, "get-documents", {"indexUid": test_index, "offset": 0, "limit": 10}
+            mcp_server,
+            "get-documents",
+            {"indexUid": test_index, "offset": 0, "limit": 10},
         )
 
-        assert len(result) == 1
-        assert result[0].type == "text"
-
-        response_text = result[0].text
+        response_text = assert_text_content_response(result, "Documents:")
 
         # Issue #16 assertion: Should NOT contain Python object representation
         assert (
@@ -368,17 +354,12 @@ class TestIssue16GetDocumentsJsonSerialization:
         )
         assert "DocumentsResults" not in response_text
 
-        # Should contain proper JSON structure
-        assert "Documents:" in response_text
-        assert (
-            "Test Document" in response_text
-        )  # Actual document content should be accessible
+        # Should contain actual document content
+        assert "Test Document" in response_text
         assert "Test content" in response_text
 
         # Should be valid JSON after the "Documents:" prefix
         json_part = response_text.replace("Documents:", "").strip()
-        import json
-
         try:
             parsed_data = json.loads(json_part)
             assert isinstance(parsed_data, dict)
@@ -387,170 +368,106 @@ class TestIssue16GetDocumentsJsonSerialization:
         except json.JSONDecodeError:
             pytest.fail(f"get-documents returned non-JSON data: {response_text}")
 
-    async def test_update_connection_settings_persistence(self, server):
+    async def test_update_connection_settings_persistence(self, mcp_server):
         """Test that connection updates persist for MCP client sessions"""
-        original_url = server.url
-        original_key = server.api_key
-
         # Test URL update
-        new_url = "http://localhost:7701"
-        await simulate_mcp_call(server, "update-connection-settings", {"url": new_url})
-
-        assert server.url == new_url
-        assert server.meili_client.client.config.url == new_url
+        await simulate_mcp_call(
+            mcp_server, "update-connection-settings", {"url": ALT_TEST_URL}
+        )
+        assert mcp_server.url == ALT_TEST_URL
+        assert mcp_server.meili_client.client.config.url == ALT_TEST_URL
 
         # Test API key update
-        new_key = "test_api_key_123"
         await simulate_mcp_call(
-            server, "update-connection-settings", {"api_key": new_key}
+            mcp_server, "update-connection-settings", {"api_key": TEST_API_KEY}
         )
-
-        assert server.api_key == new_key
-        assert server.meili_client.client.config.api_key == new_key
+        assert mcp_server.api_key == TEST_API_KEY
+        assert mcp_server.meili_client.client.config.api_key == TEST_API_KEY
 
         # Test both updates together
-        final_url = "http://localhost:7702"
-        final_key = "final_test_key"
         await simulate_mcp_call(
-            server,
+            mcp_server,
             "update-connection-settings",
-            {"url": final_url, "api_key": final_key},
+            {"url": ALT_TEST_URL_2, "api_key": FINAL_TEST_KEY},
         )
+        assert mcp_server.url == ALT_TEST_URL_2
+        assert mcp_server.api_key == FINAL_TEST_KEY
 
-        assert server.url == final_url
-        assert server.api_key == final_key
-
-    async def test_connection_settings_validation(self, server):
+    async def test_connection_settings_validation(self, mcp_server):
         """Test that MCP client receives validation for connection settings"""
-        # Test with empty/invalid updates
-        result = await simulate_mcp_call(server, "update-connection-settings", {})
-
-        # Should succeed but not change anything
-        assert len(result) == 1
-        assert "Successfully updated" in result[0].text
+        # Test with empty updates
+        result = await simulate_mcp_call(mcp_server, "update-connection-settings", {})
+        assert_text_content_response(result, "Successfully updated")
 
         # Test partial updates
-        original_url = server.url
-        result = await simulate_mcp_call(
-            server, "update-connection-settings", {"api_key": "new_key_only"}
+        original_url = mcp_server.url
+        await simulate_mcp_call(
+            mcp_server, "update-connection-settings", {"api_key": "new_key_only"}
         )
 
-        assert server.url == original_url  # URL unchanged
-        assert server.api_key == "new_key_only"  # Key updated
+        assert mcp_server.url == original_url  # URL unchanged
+        assert mcp_server.api_key == "new_key_only"  # Key updated
 
 
 class TestIssue17DefaultLimitOffset:
     """Test for issue #17 - get-documents should use default limit and offset to avoid None parameter errors"""
 
-    @pytest.fixture
-    async def server(self):
-        """Create server instance for issue #17 tests"""
-        url = os.getenv("MEILI_HTTP_ADDR", "http://localhost:7700")
-        api_key = os.getenv("MEILI_MASTER_KEY")
-        server = create_server(url, api_key)
-        yield server
-        await server.cleanup()
-
-    async def test_get_documents_without_limit_offset_parameters(self, server):
+    async def test_get_documents_without_limit_offset_parameters(self, mcp_server):
         """Test that get-documents works without providing limit/offset parameters (issue #17)"""
-        import time
-
-        test_index = f"test_issue17_{int(time.time() * 1000)}"
-
-        # Create index and add test documents
-        await simulate_mcp_call(server, "create-index", {"uid": test_index})
-
+        test_index = generate_unique_index_name("test_issue17")
         test_documents = [
             {"id": 1, "title": "Test Document 1", "content": "Content 1"},
             {"id": 2, "title": "Test Document 2", "content": "Content 2"},
             {"id": 3, "title": "Test Document 3", "content": "Content 3"},
         ]
-        await simulate_mcp_call(
-            server,
-            "add-documents",
-            {"indexUid": test_index, "documents": test_documents},
-        )
 
-        # Wait for indexing
-        import asyncio
-
-        await asyncio.sleep(0.5)
+        # Create index and add test documents
+        await create_test_index_with_documents(mcp_server, test_index, test_documents)
 
         # Test get-documents without any limit/offset parameters (should use defaults)
         result = await simulate_mcp_call(
-            server, "get-documents", {"indexUid": test_index}
+            mcp_server, "get-documents", {"indexUid": test_index}
         )
-
-        assert len(result) == 1
-        assert result[0].type == "text"
-        assert "Documents:" in result[0].text
+        assert_text_content_response(result, "Documents:")
         # Should not get any errors about None parameters
 
-    async def test_get_documents_with_explicit_parameters(self, server):
+    async def test_get_documents_with_explicit_parameters(self, mcp_server):
         """Test that get-documents still works with explicit limit/offset parameters"""
-        import time
-
-        test_index = f"test_issue17_explicit_{int(time.time() * 1000)}"
-
-        # Create index and add test documents
-        await simulate_mcp_call(server, "create-index", {"uid": test_index})
-
+        test_index = generate_unique_index_name("test_issue17_explicit")
         test_documents = [
             {"id": 1, "title": "Test Document 1", "content": "Content 1"},
             {"id": 2, "title": "Test Document 2", "content": "Content 2"},
         ]
-        await simulate_mcp_call(
-            server,
-            "add-documents",
-            {"indexUid": test_index, "documents": test_documents},
-        )
 
-        # Wait for indexing
-        import asyncio
-
-        await asyncio.sleep(0.5)
+        # Create index and add test documents
+        await create_test_index_with_documents(mcp_server, test_index, test_documents)
 
         # Test get-documents with explicit parameters
         result = await simulate_mcp_call(
-            server, "get-documents", {"indexUid": test_index, "offset": 0, "limit": 1}
+            mcp_server,
+            "get-documents",
+            {"indexUid": test_index, "offset": 0, "limit": 1},
         )
+        assert_text_content_response(result, "Documents:")
 
-        assert len(result) == 1
-        assert result[0].type == "text"
-        assert "Documents:" in result[0].text
-
-    async def test_get_documents_default_values_applied(self, server):
+    async def test_get_documents_default_values_applied(self, mcp_server):
         """Test that default values (offset=0, limit=20) are properly applied"""
-        import time
-
-        test_index = f"test_issue17_defaults_{int(time.time() * 1000)}"
+        test_index = generate_unique_index_name("test_issue17_defaults")
+        test_documents = [{"id": i, "title": f"Document {i}"} for i in range(1, 6)]
 
         # Create index and add test documents
-        await simulate_mcp_call(server, "create-index", {"uid": test_index})
-
-        test_documents = [{"id": i, "title": f"Document {i}"} for i in range(1, 6)]
-        await simulate_mcp_call(
-            server,
-            "add-documents",
-            {"indexUid": test_index, "documents": test_documents},
-        )
-
-        # Wait for indexing
-        import asyncio
-
-        await asyncio.sleep(0.5)
+        await create_test_index_with_documents(mcp_server, test_index, test_documents)
 
         # Test that both calls with and without parameters work
         result_no_params = await simulate_mcp_call(
-            server, "get-documents", {"indexUid": test_index}
+            mcp_server, "get-documents", {"indexUid": test_index}
         )
-
         result_with_defaults = await simulate_mcp_call(
-            server, "get-documents", {"indexUid": test_index, "offset": 0, "limit": 20}
+            mcp_server,
+            "get-documents",
+            {"indexUid": test_index, "offset": 0, "limit": 20},
         )
 
         # Both should work and return similar results
-        assert len(result_no_params) == 1
-        assert len(result_with_defaults) == 1
-        assert result_no_params[0].type == "text"
-        assert result_with_defaults[0].type == "text"
+        assert_text_content_response(result_no_params)
+        assert_text_content_response(result_with_defaults)
