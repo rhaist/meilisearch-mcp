@@ -303,6 +303,69 @@ class TestMCPConnectionSettings:
             assert "********" in text or "Not set" in text
         else:
             assert "Not set" in text
+
+
+class TestIssue16GetDocumentsJsonSerialization:
+    """Test for issue #16 - get-documents should return JSON, not Python object representations"""
+    
+    @pytest.fixture
+    async def server(self):
+        """Create server instance for issue #16 tests"""
+        url = os.getenv("MEILI_HTTP_ADDR", "http://localhost:7700")
+        api_key = os.getenv("MEILI_MASTER_KEY")
+        server = create_server(url, api_key)
+        yield server
+        await server.cleanup()
+
+    async def test_get_documents_returns_json_not_python_object(self, server):
+        """Test that get-documents returns JSON-formatted text, not Python object string representation (issue #16)"""
+        import time
+        test_index = f"test_issue16_{int(time.time() * 1000)}"
+        
+        # Create index and add a test document
+        await simulate_mcp_call(server, "create-index", {"uid": test_index})
+        
+        test_document = {"id": 1, "title": "Test Document", "content": "Test content"}
+        await simulate_mcp_call(server, "add-documents", {
+            "indexUid": test_index,
+            "documents": [test_document]
+        })
+        
+        # Wait for indexing
+        import asyncio
+        await asyncio.sleep(0.5)
+        
+        # Get documents with explicit parameters
+        result = await simulate_mcp_call(server, "get-documents", {
+            "indexUid": test_index,
+            "offset": 0,
+            "limit": 10
+        })
+        
+        assert len(result) == 1
+        assert result[0].type == "text"
+        
+        response_text = result[0].text
+        
+        # Issue #16 assertion: Should NOT contain Python object representation
+        assert "<meilisearch.models.document.DocumentsResults object at" not in response_text
+        assert "DocumentsResults" not in response_text
+        
+        # Should contain proper JSON structure
+        assert "Documents:" in response_text
+        assert "Test Document" in response_text  # Actual document content should be accessible
+        assert "Test content" in response_text
+        
+        # Should be valid JSON after the "Documents:" prefix
+        json_part = response_text.replace("Documents:", "").strip()
+        import json
+        try:
+            parsed_data = json.loads(json_part)
+            assert isinstance(parsed_data, dict)
+            assert "results" in parsed_data
+            assert len(parsed_data["results"]) > 0
+        except json.JSONDecodeError:
+            pytest.fail(f"get-documents returned non-JSON data: {response_text}")
     
     async def test_update_connection_settings_persistence(self, server):
         """Test that connection updates persist for MCP client sessions"""
