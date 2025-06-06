@@ -202,6 +202,7 @@ npx @modelcontextprotocol/inspector python -m src.meilisearch_mcp
 ### Index Management
 - `create-index`: Create a new index with optional primary key
 - `list-indexes`: List all available indexes
+- `delete-index`: Delete an existing index and all its documents
 - `get-index-metrics`: Get detailed metrics for a specific index
 
 ### Document Operations
@@ -286,6 +287,103 @@ git push origin feature/your-feature-name
 - Use descriptive test names and clear assertions
 - Test both success and error cases
 - Ensure Meilisearch is running before running tests
+
+## Release Process
+
+This project uses automated versioning and publishing to PyPI. The release process is designed to be simple and automated.
+
+### How Releases Work
+
+1. **Automated Publishing**: When the version number in `pyproject.toml` changes on the `main` branch, a GitHub Action automatically:
+   - Builds the Python package
+   - Publishes it to PyPI using trusted publishing
+   - Creates a new release on GitHub
+
+2. **Version Detection**: The workflow compares the current version in `pyproject.toml` with the previous commit to detect changes
+
+3. **PyPI Publishing**: Uses PyPA's official publish action with trusted publishing (no manual API keys needed)
+
+### Creating a New Release
+
+To create a new release, follow these steps:
+
+#### 1. Determine Version Number
+
+Follow [Semantic Versioning](https://semver.org/) (MAJOR.MINOR.PATCH):
+
+- **PATCH** (e.g., 0.4.0 → 0.4.1): Bug fixes, documentation updates, minor improvements
+- **MINOR** (e.g., 0.4.0 → 0.5.0): New features, new MCP tools, significant enhancements
+- **MAJOR** (e.g., 0.5.0 → 1.0.0): Breaking changes, major API changes
+
+#### 2. Update Version and Create PR
+
+```bash
+# 1. Create a branch from latest main
+git checkout main
+git pull origin main
+git checkout -b release/v0.5.0
+
+# 2. Update version in pyproject.toml
+# Edit the version = "0.4.0" line to your new version
+
+# 3. Commit and push
+git add pyproject.toml
+git commit -m "Bump version to 0.5.0"
+git push origin release/v0.5.0
+
+# 4. Create PR and get it reviewed/merged
+gh pr create --title "Release v0.5.0" --body "Bump version for release"
+```
+
+#### 3. Merge to Main
+
+Once the PR is approved and merged to `main`, the GitHub Action will automatically:
+
+1. Detect the version change
+2. Build the package  
+3. Publish to PyPI at https://pypi.org/p/meilisearch-mcp
+4. Make the new version available via `pip install meilisearch-mcp`
+
+#### 4. Verify Release
+
+After merging, verify the release:
+
+```bash
+# Check GitHub Action status
+gh run list --workflow=publish.yml
+
+# Verify on PyPI (may take a few minutes)
+pip index versions meilisearch-mcp
+
+# Test installation of new version
+pip install --upgrade meilisearch-mcp
+```
+
+### Release Workflow File
+
+The automated release is handled by `.github/workflows/publish.yml`, which:
+
+- Triggers on pushes to `main` branch
+- Checks if `pyproject.toml` version changed
+- Uses Python 3.10 and official build tools
+- Publishes using trusted publishing (no API keys required)
+- Provides verbose output for debugging
+
+### Troubleshooting Releases
+
+**Release didn't trigger**: Check that the version in `pyproject.toml` actually changed between commits
+
+**Build failed**: Check the GitHub Actions logs for Python package build errors
+
+**PyPI publish failed**: Verify the package name and that trusted publishing is configured properly
+
+**Version conflicts**: Ensure the new version number hasn't been used before on PyPI
+
+### Development vs Production Versions
+
+- **Development**: Install from source using `pip install -e .`
+- **Production**: Install from PyPI using `pip install meilisearch-mcp`
+- **Specific version**: Install using `pip install meilisearch-mcp==0.5.0`
 
 ## License
 
