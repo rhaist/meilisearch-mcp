@@ -25,6 +25,9 @@ cd meilisearch-mcp
 uv venv
 source .venv/bin/activate  # On Windows: .venv\Scripts\activate
 uv pip install -e .
+
+# Install development dependencies (for testing and development)
+uv pip install -r requirements-dev.txt
 ```
 
 ## Requirements
@@ -32,6 +35,68 @@ uv pip install -e .
 - Python ≥ 3.9
 - Running Meilisearch instance
 - Node.js (for testing with MCP Inspector)
+
+## Development Setup
+
+### Prerequisites
+
+1. **Start Meilisearch server**:
+   ```bash
+   # Using Docker (recommended for development)
+   docker run -d -p 7700:7700 getmeili/meilisearch:v1.6
+   
+   # Or using brew (macOS)
+   brew install meilisearch
+   meilisearch
+   
+   # Or download from https://github.com/meilisearch/meilisearch/releases
+   ```
+
+2. **Install development tools**:
+   ```bash
+   # Install uv for Python package management
+   pip install uv
+   
+   # Install Node.js for MCP Inspector testing
+   # Visit https://nodejs.org/ or use your package manager
+   ```
+
+### Running Tests
+
+This project includes comprehensive integration tests that verify MCP tool functionality:
+
+```bash
+# Run all tests
+python -m pytest tests/ -v
+
+# Run specific test file
+python -m pytest tests/test_mcp_client.py -v
+
+# Run tests with coverage report
+python -m pytest --cov=src tests/
+
+# Run tests in watch mode (requires pytest-watch)
+pytest-watch tests/
+```
+
+**Important**: Tests require a running Meilisearch instance on `http://localhost:7700`. The tests will:
+- Create temporary test indices with unique names
+- Test all MCP tools end-to-end
+- Clean up test data automatically
+- Verify error handling and edge cases
+
+### Code Quality
+
+```bash
+# Format code with Black
+black src/ tests/
+
+# Run type checking (if mypy is configured)
+mypy src/
+
+# Lint code (if flake8 is configured)
+flake8 src/ tests/
+```
 
 ## Usage
 
@@ -182,10 +247,45 @@ npx @modelcontextprotocol/inspector python -m src.meilisearch_mcp
 
 ## Contributing
 
-1. Fork repository
-2. Create feature branch
-3. Commit changes
-4. Create pull request
+We welcome contributions! Please follow these guidelines:
+
+1. **Fork and clone** the repository
+2. **Set up development environment** following the Development Setup section above
+3. **Create a feature branch** from `main`
+4. **Write tests first** if adding new functionality (Test-Driven Development)
+5. **Run tests locally** to ensure all tests pass before committing
+6. **Format code** with Black and ensure code quality
+7. **Commit changes** with descriptive commit messages
+8. **Push to your fork** and create a pull request
+
+### Development Workflow
+
+```bash
+# Create feature branch
+git checkout -b feature/your-feature-name
+
+# Make your changes, write tests first
+# Edit files...
+
+# Run tests to ensure everything works
+python -m pytest tests/ -v
+
+# Format code
+black src/ tests/
+
+# Commit and push
+git add .
+git commit -m "Add feature description"
+git push origin feature/your-feature-name
+```
+
+### Testing Guidelines
+
+- All new features should include tests
+- Tests should pass before submitting PRs
+- Use descriptive test names and clear assertions
+- Test both success and error cases
+- Ensure Meilisearch is running before running tests
 
 ## License
 

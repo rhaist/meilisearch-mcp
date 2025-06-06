@@ -2,6 +2,55 @@
 
 This file provides guidance to Claude Code (claude.ai/code) when working with code in this repository.
 
+## 🚨 IMPORTANT: Development Workflow Guidelines
+
+**Before starting any task, agents MUST assess if tests are needed for the work requested.**
+
+### Test-Driven Development (TDD) Approach
+
+When working on this repository, follow these **mandatory** guidelines:
+
+1. **Assessment Phase**: Before writing any code, determine if the work requires tests:
+   - ✅ **Tests Required**: New features, bug fixes, API changes, tool modifications
+   - ❌ **Tests Optional**: Documentation updates, minor refactoring without behavior changes
+
+2. **TDD Workflow** (when tests are required):
+   ```bash
+   # 1. Write failing tests FIRST
+   python -m pytest tests/test_new_feature.py -v  # Should fail
+   
+   # 2. Write minimal code to make tests pass
+   # Edit source files...
+   
+   # 3. Run tests to verify they pass
+   python -m pytest tests/test_new_feature.py -v  # Should pass
+   
+   # 4. Refactor and repeat
+   ```
+
+3. **Pre-commit Requirements**:
+   - **ALWAYS run all tests locally** before committing any changes
+   - **ALL tests must pass** before pushing to remote
+   - **Format code** with Black before committing
+   - **Work incrementally** with small, atomic commits
+
+4. **Incremental Development**:
+   - Make small, focused changes
+   - Commit frequently with descriptive messages
+   - Each commit should represent a working state
+   - Push regularly to avoid conflicts
+
+### Mandatory Test Execution
+
+```bash
+# Before ANY commit, run:
+python -m pytest tests/ -v                    # All tests must pass
+black src/ tests/                            # Format code
+python -m pytest --cov=src tests/           # Verify coverage
+```
+
+**⚠️ Never commit or push if tests are failing or not written for new functionality.**
+
 ## Project Overview
 
 This is a **Model Context Protocol (MCP) server** for Meilisearch, allowing LLM interfaces like Claude to interact with Meilisearch search engines. The project implements a Python-based MCP server that provides comprehensive tools for index management, document operations, search functionality, and system monitoring.
@@ -19,25 +68,28 @@ uv pip install -e .
 uv pip install -r requirements-dev.txt
 ```
 
-### Testing
+### Testing (MANDATORY for all development)
 ```bash
-# Run all tests
+# Run all tests (required before any commit)
 python -m pytest tests/ -v
 
 # Run specific test file
-python -m pytest tests/test_mcp_integration.py -v
+python -m pytest tests/test_mcp_client.py -v
 
-# Run tests with coverage
+# Run tests with coverage (required for new features)
 python -m pytest --cov=src tests/
 
-# Run integration tests (requires running Meilisearch)
-python -m pytest tests/test_mcp_integration.py -v
+# Watch mode for development (optional)
+pytest-watch tests/
 ```
 
-### Code Quality
+### Code Quality (MANDATORY before commit)
 ```bash
-# Format code (Black >=23.0.0)
+# Format code (required before commit)
 black src/ tests/
+
+# Check formatting without applying
+black --check src/ tests/
 
 # Run the MCP server locally for testing
 python -m src.meilisearch_mcp
@@ -94,21 +146,38 @@ All MCP tools follow a consistent pattern:
 ## Testing Strategy
 
 ### Test Structure
-- **Integration Tests** (`test_mcp_integration.py`): End-to-end MCP tool execution with real Meilisearch
-- **Synchronous Tests** (`test_mcp_sync.py`, `test_mcp_simple.py`): Simplified testing avoiding async complications
-- **Unit Tests** (`test_server.py`): Basic server instantiation
+- **Integration Tests** (`test_mcp_client.py`): End-to-end MCP tool execution with real Meilisearch
+- **Unit Tests** (`test_server.py`): Basic server instantiation and configuration
 
-### Tool Simulation
+### Test Categories by Development Task
+
+#### When Tests are REQUIRED:
+- **New MCP Tools**: Add tests to `test_mcp_client.py` using `simulate_tool_call()`
+- **Existing Tool Changes**: Update corresponding test methods
+- **Manager Class Changes**: Test through MCP tool integration
+- **Bug Fixes**: Add regression tests to prevent reoccurrence
+- **API Changes**: Update tests to reflect new interfaces
+
+#### When Tests are OPTIONAL:
+- **Documentation Updates**: README.md, CLAUDE.md changes
+- **Code Formatting**: Black formatting, comment changes
+- **Minor Refactoring**: Internal reorganization without behavior changes
+
+### Tool Simulation Framework
 Tests use `simulate_tool_call()` function that:
 - Directly invokes server tool handlers
-- Bypasses MCP protocol overhead
+- Bypasses MCP protocol overhead  
 - Returns proper `TextContent` responses
 - Provides comprehensive coverage of all 20+ tools
+- Enables fast test execution without MCP protocol complexity
 
-### Test Isolation
+### Test Isolation and Best Practices
 - **Unique Index Names**: Timestamped index names prevent test interference
-- **Cleanup Fixtures**: Automatic test environment cleanup
+- **Cleanup Fixtures**: Automatic test environment cleanup after each test
 - **Service Dependencies**: Tests require running Meilisearch instance
+- **Test Naming**: Use descriptive test method names (e.g., `test_create_index_with_primary_key`)
+- **Assertions**: Test both success cases and error handling
+- **Coverage**: New tools must have comprehensive test coverage
 
 ## Environment Configuration
 
