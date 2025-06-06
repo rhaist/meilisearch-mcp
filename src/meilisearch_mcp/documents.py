@@ -54,7 +54,6 @@ class DocumentManager:
                 return result_dict
             else:
                 return result
-                
         except Exception as e:
             raise Exception(f"Failed to get documents: {str(e)}")
 

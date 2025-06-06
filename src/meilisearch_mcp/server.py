@@ -24,7 +24,9 @@ def json_serializer(obj: Any) -> str:
     return str(obj)
 
 
-def create_server(url: str = "http://localhost:7700", api_key: Optional[str] = None) -> "MeilisearchMCPServer":
+def create_server(
+    url: str = "http://localhost:7700", api_key: Optional[str] = None
+) -> "MeilisearchMCPServer":
     """Create and return a configured MeilisearchMCPServer instance"""
     return MeilisearchMCPServer(url, api_key)
 
@@ -48,13 +50,15 @@ class MeilisearchMCPServer:
         self.server = Server("meilisearch")
         self._setup_handlers()
 
-    async def update_connection(self, url: Optional[str] = None, api_key: Optional[str] = None):
+    async def update_connection(
+        self, url: Optional[str] = None, api_key: Optional[str] = None
+    ):
         """Update connection settings and reinitialize client if needed"""
         if url:
             self.url = url
         if api_key:
             self.api_key = api_key
-        
+
         self.meili_client = MeilisearchClient(self.url, self.api_key)
         self.logger.info("Updated Meilisearch connection settings", url=self.url)
 
@@ -171,7 +175,11 @@ class MeilisearchMCPServer:
                             "limit": {"type": "integer", "optional": True},
                             "offset": {"type": "integer", "optional": True},
                             "filter": {"type": "string", "optional": True},
-                            "sort": {"type": "array", "items": {"type": "string"}, "optional": True},
+                            "sort": {
+                                "type": "array",
+                                "items": {"type": "string"},
+                                "optional": True,
+                            },
                         },
                         "required": ["query"],
                     },
@@ -194,20 +202,44 @@ class MeilisearchMCPServer:
                             "limit": {"type": "integer", "optional": True},
                             "from": {"type": "integer", "optional": True},
                             "reverse": {"type": "boolean", "optional": True},
-                            "batchUids": {"type": "array", "items": {"type": "string"}, "optional": True},
-                            "uids": {"type": "array", "items": {"type": "integer"}, "optional": True},
-                            "canceledBy": {"type": "array", "items": {"type": "string"}, "optional": True},
-                            "types": {"type": "array", "items": {"type": "string"}, "optional": True},
-                            "statuses": {"type": "array", "items": {"type": "string"}, "optional": True},
-                            "indexUids": {"type": "array", "items": {"type": "string"}, "optional": True},
+                            "batchUids": {
+                                "type": "array",
+                                "items": {"type": "string"},
+                                "optional": True,
+                            },
+                            "uids": {
+                                "type": "array",
+                                "items": {"type": "integer"},
+                                "optional": True,
+                            },
+                            "canceledBy": {
+                                "type": "array",
+                                "items": {"type": "string"},
+                                "optional": True,
+                            },
+                            "types": {
+                                "type": "array",
+                                "items": {"type": "string"},
+                                "optional": True,
+                            },
+                            "statuses": {
+                                "type": "array",
+                                "items": {"type": "string"},
+                                "optional": True,
+                            },
+                            "indexUids": {
+                                "type": "array",
+                                "items": {"type": "string"},
+                                "optional": True,
+                            },
                             "afterEnqueuedAt": {"type": "string", "optional": True},
                             "beforeEnqueuedAt": {"type": "string", "optional": True},
                             "afterStartedAt": {"type": "string", "optional": True},
                             "beforeStartedAt": {"type": "string", "optional": True},
                             "afterFinishedAt": {"type": "string", "optional": True},
-                            "beforeFinishedAt": {"type": "string", "optional": True}
-                        }
-                    }
+                            "beforeFinishedAt": {"type": "string", "optional": True},
+                        },
+                    },
                 ),
                 types.Tool(
                     name="cancel-tasks",
@@ -293,8 +325,7 @@ class MeilisearchMCPServer:
 
                 elif name == "update-connection-settings":
                     await self.update_connection(
-                        arguments.get("url"),
-                        arguments.get("api_key")
+                        arguments.get("url"), arguments.get("api_key")
                     )
                     return [
                         types.TextContent(
@@ -313,7 +344,9 @@ class MeilisearchMCPServer:
 
                 elif name == "list-indexes":
                     indexes = await self.meili_client.get_indexes()
-                    formatted_json = json.dumps(indexes, indent=2, default=json_serializer)
+                    formatted_json = json.dumps(
+                        indexes, indent=2, default=json_serializer
+                    )
                     return [
                         types.TextContent(
                             type="text", text=f"Indexes:\n{formatted_json}"
@@ -397,13 +430,15 @@ class MeilisearchMCPServer:
                         filter=arguments.get("filter"),
                         sort=arguments.get("sort"),
                     )
-                    
+
                     # Format the results for better readability
-                    formatted_results = json.dumps(search_results, indent=2, default=json_serializer)
+                    formatted_results = json.dumps(
+                        search_results, indent=2, default=json_serializer
+                    )
                     return [
                         types.TextContent(
                             type="text",
-                            text=f"Search results for '{arguments['query']}':\n{formatted_results}"
+                            text=f"Search results for '{arguments['query']}':\n{formatted_results}",
                         )
                     ]
 
@@ -416,11 +451,27 @@ class MeilisearchMCPServer:
                 elif name == "get-tasks":
                     # Filter out any invalid parameters
                     valid_params = {
-                        "limit", "from", "reverse", "batchUids", "uids", "canceledBy",
-                        "types", "statuses", "indexUids", "afterEnqueuedAt", "beforeEnqueuedAt",
-                        "afterStartedAt", "beforeStartedAt", "afterFinishedAt", "beforeFinishedAt"
+                        "limit",
+                        "from",
+                        "reverse",
+                        "batchUids",
+                        "uids",
+                        "canceledBy",
+                        "types",
+                        "statuses",
+                        "indexUids",
+                        "afterEnqueuedAt",
+                        "beforeEnqueuedAt",
+                        "afterStartedAt",
+                        "beforeStartedAt",
+                        "afterFinishedAt",
+                        "beforeFinishedAt",
                     }
-                    filtered_args = {k: v for k, v in arguments.items() if k in valid_params} if arguments else {}
+                    filtered_args = (
+                        {k: v for k, v in arguments.items() if k in valid_params}
+                        if arguments
+                        else {}
+                    )
                     tasks = await self.meili_client.tasks.get_tasks(filtered_args)
                     return [types.TextContent(type="text", text=f"Tasks: {tasks}")]
 
@@ -479,7 +530,8 @@ class MeilisearchMCPServer:
                     )
                     return [
                         types.TextContent(
-                            type="text", text=f"Index metrics: {json.dumps(metrics.__dict__, default=json_serializer)}"
+                            type="text",
+                            text=f"Index metrics: {json.dumps(metrics.__dict__, default=json_serializer)}",
                         )
                     ]
 
@@ -526,13 +578,15 @@ class MeilisearchMCPServer:
         self.logger.info("Shutting down MCP server")
         self.logger.shutdown()
 
+
 def main():
     """Main entry point"""
     url = os.getenv("MEILI_HTTP_ADDR", "http://localhost:7700")
     api_key = os.getenv("MEILI_MASTER_KEY")
-    
+
     server = create_server(url, api_key)
     asyncio.run(server.run())
+
 
 if __name__ == "__main__":
     main()
