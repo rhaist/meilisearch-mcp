@@ -232,7 +232,7 @@ class TestMCPToolDiscovery:
         tools = await simulate_list_tools(mcp_server)
         tool_names = [tool.name for tool in tools]
 
-        # Complete list of expected tools (21 total)
+        # Complete list of expected tools (22 total)
         expected_tools = [
             "get-connection-settings",
             "update-connection-settings",
@@ -241,6 +241,7 @@ class TestMCPToolDiscovery:
             "get-stats",
             "create-index",
             "list-indexes",
+            "delete-index",
             "get-documents",
             "add-documents",
             "get-settings",
@@ -272,7 +273,13 @@ class TestMCPToolDiscovery:
                 t
                 for t in tools
                 if any(
-                    word in t.name for word in ["index", "create-index", "list-indexes"]
+                    word in t.name
+                    for word in [
+                        "index",
+                        "create-index",
+                        "list-indexes",
+                        "delete-index",
+                    ]
                 )
             ],
             "document": [t for t in tools if "document" in t.name],
@@ -292,7 +299,7 @@ class TestMCPToolDiscovery:
         # Verify minimum expected tools per category
         expected_counts = {
             "connection": 2,
-            "index": 2,
+            "index": 3,
             "document": 2,
             "search": 1,
             "task": 2,
@@ -471,3 +478,135 @@ class TestIssue17DefaultLimitOffset:
         # Both should work and return similar results
         assert_text_content_response(result_no_params)
         assert_text_content_response(result_with_defaults)
+
+
+class TestIssue23DeleteIndexTool:
+    """Test for issue #23 - Add delete-index MCP tool functionality"""
+
+    async def test_delete_index_tool_discovery(self, mcp_server):
+        """Test that delete-index tool is discoverable by MCP clients (issue #23)"""
+        tools = await simulate_list_tools(mcp_server)
+        tool_names = [tool.name for tool in tools]
+
+        assert "delete-index" in tool_names
+
+        # Find the delete-index tool and verify its schema
+        delete_tool = next(tool for tool in tools if tool.name == "delete-index")
+        assert delete_tool.description == "Delete a Meilisearch index"
+        assert delete_tool.inputSchema["type"] == "object"
+        assert "uid" in delete_tool.inputSchema["required"]
+        assert "uid" in delete_tool.inputSchema["properties"]
+        assert delete_tool.inputSchema["properties"]["uid"]["type"] == "string"
+
+    async def test_delete_index_successful_deletion(self, mcp_server):
+        """Test successful index deletion through MCP client (issue #23)"""
+        test_index = generate_unique_index_name("test_delete_success")
+
+        # Create index first
+        await simulate_mcp_call(mcp_server, "create-index", {"uid": test_index})
+        await wait_for_indexing()
+
+        # Verify index exists by listing indexes
+        list_result = await simulate_mcp_call(mcp_server, "list-indexes")
+        list_text = assert_text_content_response(list_result)
+        assert test_index in list_text
+
+        # Delete the index
+        result = await simulate_mcp_call(
+            mcp_server, "delete-index", {"uid": test_index}
+        )
+        response_text = assert_text_content_response(
+            result, "Successfully deleted index:"
+        )
+        assert test_index in response_text
+
+        # Verify index no longer exists by listing indexes
+        await wait_for_indexing()
+        list_result_after = await simulate_mcp_call(mcp_server, "list-indexes")
+        list_text_after = assert_text_content_response(list_result_after)
+        assert test_index not in list_text_after
+
+    async def test_delete_index_with_documents(self, mcp_server):
+        """Test deleting index that contains documents (issue #23)"""
+        test_index = generate_unique_index_name("test_delete_with_docs")
+        test_documents = [
+            {"id": 1, "title": "Test Document 1", "content": "Content 1"},
+            {"id": 2, "title": "Test Document 2", "content": "Content 2"},
+        ]
+
+        # Create index and add documents
+        await create_test_index_with_documents(mcp_server, test_index, test_documents)
+
+        # Verify documents exist
+        docs_result = await simulate_mcp_call(
+            mcp_server, "get-documents", {"indexUid": test_index}
+        )
+        docs_text = assert_text_content_response(docs_result, "Documents:")
+        assert "Test Document 1" in docs_text
+
+        # Delete the index (should also delete all documents)
+        result = await simulate_mcp_call(
+            mcp_server, "delete-index", {"uid": test_index}
+        )
+        response_text = assert_text_content_response(
+            result, "Successfully deleted index:"
+        )
+        assert test_index in response_text
+
+        # Verify index and documents are gone
+        await wait_for_indexing()
+        list_result = await simulate_mcp_call(mcp_server, "list-indexes")
+        list_text = assert_text_content_response(list_result)
+        assert test_index not in list_text
+
+    async def test_delete_nonexistent_index_behavior(self, mcp_server):
+        """Test behavior when deleting non-existent index (issue #23)"""
+        nonexistent_index = generate_unique_index_name("nonexistent")
+
+        # Try to delete non-existent index
+        # Note: Meilisearch allows deleting non-existent indexes without error
+        result = await simulate_mcp_call(
+            mcp_server, "delete-index", {"uid": nonexistent_index}
+        )
+        response_text = assert_text_content_response(
+            result, "Successfully deleted index:"
+        )
+        assert nonexistent_index in response_text
+
+    async def test_delete_index_input_validation(self, mcp_server):
+        """Test input validation for delete-index tool (issue #23)"""
+        # Test missing uid parameter
+        result = await simulate_mcp_call(mcp_server, "delete-index", {})
+        response_text = assert_text_content_response(result, "Error:")
+        assert "Error:" in response_text
+
+    async def test_delete_index_integration_workflow(self, mcp_server):
+        """Test complete workflow: create -> add docs -> search -> delete (issue #23)"""
+        test_index = generate_unique_index_name("test_delete_workflow")
+        test_documents = [
+            {"id": 1, "title": "Workflow Document", "content": "Testing workflow"},
+        ]
+
+        # Create index and add documents
+        await create_test_index_with_documents(mcp_server, test_index, test_documents)
+
+        # Search to verify functionality
+        search_result = await simulate_mcp_call(
+            mcp_server, "search", {"query": "workflow", "indexUid": test_index}
+        )
+        search_text = assert_text_content_response(search_result)
+        assert "Workflow Document" in search_text
+
+        # Delete the index
+        delete_result = await simulate_mcp_call(
+            mcp_server, "delete-index", {"uid": test_index}
+        )
+        assert_text_content_response(delete_result, "Successfully deleted index:")
+
+        # Verify search no longer works on deleted index
+        await wait_for_indexing()
+        search_after_delete = await simulate_mcp_call(
+            mcp_server, "search", {"query": "workflow", "indexUid": test_index}
+        )
+        search_after_text = assert_text_content_response(search_after_delete, "Error:")
+        assert "Error:" in search_after_text

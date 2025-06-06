@@ -19,7 +19,7 @@ def json_serializer(obj: Any) -> str:
     if isinstance(obj, datetime):
         return obj.isoformat()
     # Handle Meilisearch model objects by using their __dict__ if available
-    if hasattr(obj, '__dict__'):
+    if hasattr(obj, "__dict__"):
         return obj.__dict__
     return str(obj)
 
@@ -116,6 +116,15 @@ class MeilisearchMCPServer:
                     name="list-indexes",
                     description="List all Meilisearch indexes",
                     inputSchema={"type": "object", "properties": {}},
+                ),
+                types.Tool(
+                    name="delete-index",
+                    description="Delete a Meilisearch index",
+                    inputSchema={
+                        "type": "object",
+                        "properties": {"uid": {"type": "string"}},
+                        "required": ["uid"],
+                    },
                 ),
                 types.Tool(
                     name="get-documents",
@@ -353,6 +362,17 @@ class MeilisearchMCPServer:
                         )
                     ]
 
+                elif name == "delete-index":
+                    result = await self.meili_client.indexes.delete_index(
+                        arguments["uid"]
+                    )
+                    return [
+                        types.TextContent(
+                            type="text",
+                            text=f"Successfully deleted index: {arguments['uid']}",
+                        )
+                    ]
+
                 elif name == "get-documents":
                     # Use default values to fix None parameter issues (related to issue #17)
                     offset = arguments.get("offset", 0)
@@ -363,9 +383,13 @@ class MeilisearchMCPServer:
                         limit,
                     )
                     # Convert DocumentsResults object to proper JSON format (fixes issue #16)
-                    formatted_json = json.dumps(documents, indent=2, default=json_serializer)
+                    formatted_json = json.dumps(
+                        documents, indent=2, default=json_serializer
+                    )
                     return [
-                        types.TextContent(type="text", text=f"Documents:\n{formatted_json}")
+                        types.TextContent(
+                            type="text", text=f"Documents:\n{formatted_json}"
+                        )
                     ]
 
                 elif name == "add-documents":
