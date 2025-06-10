@@ -28,7 +28,7 @@ class MeilisearchClient:
         self.keys = KeyManager(self.client)
         self.monitoring = MonitoringManager(self.client)
 
-    async def health_check(self) -> bool:
+    def health_check(self) -> bool:
         """Check if Meilisearch is healthy"""
         try:
             response = self.client.health()
@@ -36,15 +36,15 @@ class MeilisearchClient:
         except Exception:
             return False
 
-    async def get_version(self) -> Dict[str, Any]:
+    def get_version(self) -> Dict[str, Any]:
         """Get Meilisearch version information"""
         return self.client.get_version()
 
-    async def get_stats(self) -> Dict[str, Any]:
+    def get_stats(self) -> Dict[str, Any]:
         """Get database stats"""
         return self.client.get_all_stats()
 
-    async def search(
+    def search(
         self,
         query: str,
         index_uid: Optional[str] = None,
@@ -97,7 +97,7 @@ class MeilisearchClient:
         except Exception as e:
             raise Exception(f"Search failed: {str(e)}")
 
-    async def get_indexes(self) -> Dict[str, Any]:
+    def get_indexes(self) -> Dict[str, Any]:
         """Get all indexes"""
         indexes = self.client.get_indexes()
         # Convert Index objects to serializable dictionaries

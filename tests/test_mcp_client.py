@@ -101,7 +101,7 @@ async def mcp_server():
 
     server = create_server(url, api_key)
     yield server
-    await server.cleanup()
+    server.cleanup()
 
 
 class TestMCPClientIntegration:

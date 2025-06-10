@@ -8,7 +8,7 @@ class DocumentManager:
     def __init__(self, client: Client):
         self.client = client
 
-    async def get_documents(
+    def get_documents(
         self,
         index_uid: str,
         offset: Optional[int] = None,
@@ -57,7 +57,7 @@ class DocumentManager:
         except Exception as e:
             raise Exception(f"Failed to get documents: {str(e)}")
 
-    async def get_document(
+    def get_document(
         self, index_uid: str, document_id: Union[str, int]
     ) -> Dict[str, Any]:
         """Get a single document"""
@@ -67,7 +67,7 @@ class DocumentManager:
         except Exception as e:
             raise Exception(f"Failed to get document: {str(e)}")
 
-    async def add_documents(
+    def add_documents(
         self,
         index_uid: str,
         documents: List[Dict[str, Any]],
@@ -80,7 +80,7 @@ class DocumentManager:
         except Exception as e:
             raise Exception(f"Failed to add documents: {str(e)}")
 
-    async def update_documents(
+    def update_documents(
         self, index_uid: str, documents: List[Dict[str, Any]]
     ) -> Dict[str, Any]:
         """Update documents in an index"""
@@ -90,7 +90,7 @@ class DocumentManager:
         except Exception as e:
             raise Exception(f"Failed to update documents: {str(e)}")
 
-    async def delete_document(
+    def delete_document(
         self, index_uid: str, document_id: Union[str, int]
     ) -> Dict[str, Any]:
         """Delete a single document"""
@@ -100,7 +100,7 @@ class DocumentManager:
         except Exception as e:
             raise Exception(f"Failed to delete document: {str(e)}")
 
-    async def delete_documents(
+    def delete_documents(
         self, index_uid: str, document_ids: List[Union[str, int]]
     ) -> Dict[str, Any]:
         """Delete multiple documents by ID"""
@@ -110,7 +110,7 @@ class DocumentManager:
         except Exception as e:
             raise Exception(f"Failed to delete documents: {str(e)}")
 
-    async def delete_all_documents(self, index_uid: str) -> Dict[str, Any]:
+    def delete_all_documents(self, index_uid: str) -> Dict[str, Any]:
         """Delete all documents in an index"""
         try:
             index = self.client.index(index_uid)
