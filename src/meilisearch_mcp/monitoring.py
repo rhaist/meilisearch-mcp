@@ -32,7 +32,7 @@ class MonitoringManager:
     def __init__(self, client: Client):
         self.client = client
 
-    async def get_health_status(self) -> HealthStatus:
+    def get_health_status(self) -> HealthStatus:
         """Get comprehensive health status"""
         try:
             # Get various stats to build health picture
@@ -62,7 +62,7 @@ class MonitoringManager:
         except Exception as e:
             raise Exception(f"Failed to get health status: {str(e)}")
 
-    async def get_index_metrics(self, index_uid: str) -> IndexMetrics:
+    def get_index_metrics(self, index_uid: str) -> IndexMetrics:
         """Get detailed metrics for an index"""
         try:
             index = self.client.index(index_uid)
@@ -77,7 +77,7 @@ class MonitoringManager:
         except Exception as e:
             raise Exception(f"Failed to get index metrics: {str(e)}")
 
-    async def get_system_information(self) -> Dict[str, Any]:
+    def get_system_information(self) -> Dict[str, Any]:
         """Get system-level information"""
         try:
             version = self.client.get_version()

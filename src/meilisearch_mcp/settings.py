@@ -24,7 +24,7 @@ class SettingsManager:
     def __init__(self, client: Client):
         self.client = client
 
-    async def get_settings(self, index_uid: str) -> Dict[str, Any]:
+    def get_settings(self, index_uid: str) -> Dict[str, Any]:
         """Get all settings for an index"""
         try:
             index = self.client.index(index_uid)
@@ -32,7 +32,7 @@ class SettingsManager:
         except Exception as e:
             raise Exception(f"Failed to get settings: {str(e)}")
 
-    async def update_settings(
+    def update_settings(
         self, index_uid: str, settings: Dict[str, Any]
     ) -> Dict[str, Any]:
         """Update settings for an index"""
@@ -42,7 +42,7 @@ class SettingsManager:
         except Exception as e:
             raise Exception(f"Failed to update settings: {str(e)}")
 
-    async def reset_settings(self, index_uid: str) -> Dict[str, Any]:
+    def reset_settings(self, index_uid: str) -> Dict[str, Any]:
         """Reset settings to default values"""
         try:
             index = self.client.index(index_uid)

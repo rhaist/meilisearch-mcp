@@ -19,7 +19,7 @@ class TaskManager:
         """Initialize TaskManager with Meilisearch client"""
         self.client = client
 
-    async def get_task(self, task_uid: int) -> Dict[str, Any]:
+    def get_task(self, task_uid: int) -> Dict[str, Any]:
         """Get information about a specific task"""
         try:
             task = self.client.get_task(task_uid)
@@ -27,7 +27,7 @@ class TaskManager:
         except Exception as e:
             raise Exception(f"Failed to get task: {str(e)}")
 
-    async def get_tasks(
+    def get_tasks(
         self, parameters: Optional[Dict[str, Any]] = None
     ) -> Dict[str, Any]:
         """Get list of tasks with optional filters"""
@@ -37,7 +37,7 @@ class TaskManager:
         except Exception as e:
             raise Exception(f"Failed to get tasks: {str(e)}")
 
-    async def cancel_tasks(self, query_parameters: Dict[str, Any]) -> Dict[str, Any]:
+    def cancel_tasks(self, query_parameters: Dict[str, Any]) -> Dict[str, Any]:
         """Cancel tasks based on query parameters"""
         try:
             result = self.client.cancel_tasks(query_parameters)
@@ -45,7 +45,7 @@ class TaskManager:
         except Exception as e:
             raise Exception(f"Failed to cancel tasks: {str(e)}")
 
-    async def delete_tasks(self, query_parameters: Dict[str, Any]) -> Dict[str, Any]:
+    def delete_tasks(self, query_parameters: Dict[str, Any]) -> Dict[str, Any]:
         """Delete tasks based on query parameters"""
         try:
             result = self.client.delete_tasks(query_parameters)

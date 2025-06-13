@@ -50,7 +50,7 @@ class MeilisearchMCPServer:
         self.server = Server("meilisearch")
         self._setup_handlers()
 
-    async def update_connection(
+    def update_connection(
         self, url: Optional[str] = None, api_key: Optional[str] = None
     ):
         """Update connection settings and reinitialize client if needed"""
@@ -378,7 +378,7 @@ class MeilisearchMCPServer:
                     ]
 
                 elif name == "update-connection-settings":
-                    await self.update_connection(
+                    self.update_connection(
                         arguments.get("url"), arguments.get("api_key")
                     )
                     return [
@@ -389,7 +389,7 @@ class MeilisearchMCPServer:
                     ]
 
                 elif name == "create-index":
-                    result = await self.meili_client.indexes.create_index(
+                    result = self.meili_client.indexes.create_index(
                         arguments["uid"], arguments.get("primaryKey")
                     )
                     return [
@@ -397,7 +397,7 @@ class MeilisearchMCPServer:
                     ]
 
                 elif name == "list-indexes":
-                    indexes = await self.meili_client.get_indexes()
+                    indexes = self.meili_client.get_indexes()
                     formatted_json = json.dumps(
                         indexes, indent=2, default=json_serializer
                     )
@@ -408,7 +408,7 @@ class MeilisearchMCPServer:
                     ]
 
                 elif name == "delete-index":
-                    result = await self.meili_client.indexes.delete_index(
+                    result = self.meili_client.indexes.delete_index(
                         arguments["uid"]
                     )
                     return [
@@ -422,7 +422,7 @@ class MeilisearchMCPServer:
                     # Use default values to fix None parameter issues (related to issue #17)
                     offset = arguments.get("offset", 0)
                     limit = arguments.get("limit", 20)
-                    documents = await self.meili_client.documents.get_documents(
+                    documents = self.meili_client.documents.get_documents(
                         arguments["indexUid"],
                         offset,
                         limit,
@@ -438,7 +438,7 @@ class MeilisearchMCPServer:
                     ]
 
                 elif name == "add-documents":
-                    result = await self.meili_client.documents.add_documents(
+                    result = self.meili_client.documents.add_documents(
                         arguments["indexUid"],
                         arguments["documents"],
                         arguments.get("primaryKey"),
@@ -450,7 +450,7 @@ class MeilisearchMCPServer:
                     ]
 
                 elif name == "health-check":
-                    is_healthy = await self.meili_client.health_check()
+                    is_healthy = self.meili_client.health_check()
                     return [
                         types.TextContent(
                             type="text",
@@ -459,19 +459,19 @@ class MeilisearchMCPServer:
                     ]
 
                 elif name == "get-version":
-                    version = await self.meili_client.get_version()
+                    version = self.meili_client.get_version()
                     return [
                         types.TextContent(type="text", text=f"Version info: {version}")
                     ]
 
                 elif name == "get-stats":
-                    stats = await self.meili_client.get_stats()
+                    stats = self.meili_client.get_stats()
                     return [
                         types.TextContent(type="text", text=f"Database stats: {stats}")
                     ]
 
                 elif name == "get-settings":
-                    settings = await self.meili_client.settings.get_settings(
+                    settings = self.meili_client.settings.get_settings(
                         arguments["indexUid"]
                     )
                     return [
@@ -481,7 +481,7 @@ class MeilisearchMCPServer:
                     ]
 
                 elif name == "update-settings":
-                    result = await self.meili_client.settings.update_settings(
+                    result = self.meili_client.settings.update_settings(
                         arguments["indexUid"], arguments["settings"]
                     )
                     return [
@@ -491,7 +491,7 @@ class MeilisearchMCPServer:
                     ]
 
                 elif name == "search":
-                    search_results = await self.meili_client.search(
+                    search_results = self.meili_client.search(
                         query=arguments["query"],
                         index_uid=arguments.get("indexUid"),
                         limit=arguments.get("limit"),
@@ -512,7 +512,7 @@ class MeilisearchMCPServer:
                     ]
 
                 elif name == "get-task":
-                    task = await self.meili_client.tasks.get_task(arguments["taskUid"])
+                    task = self.meili_client.tasks.get_task(arguments["taskUid"])
                     return [
                         types.TextContent(type="text", text=f"Task information: {task}")
                     ]
@@ -541,11 +541,11 @@ class MeilisearchMCPServer:
                         if arguments
                         else {}
                     )
-                    tasks = await self.meili_client.tasks.get_tasks(filtered_args)
+                    tasks = self.meili_client.tasks.get_tasks(filtered_args)
                     return [types.TextContent(type="text", text=f"Tasks: {tasks}")]
 
                 elif name == "cancel-tasks":
-                    result = await self.meili_client.tasks.cancel_tasks(arguments)
+                    result = self.meili_client.tasks.cancel_tasks(arguments)
                     return [
                         types.TextContent(
                             type="text", text=f"Tasks cancelled: {result}"
@@ -553,11 +553,11 @@ class MeilisearchMCPServer:
                     ]
 
                 elif name == "get-keys":
-                    keys = await self.meili_client.keys.get_keys(arguments)
+                    keys = self.meili_client.keys.get_keys(arguments)
                     return [types.TextContent(type="text", text=f"API keys: {keys}")]
 
                 elif name == "create-key":
-                    key = await self.meili_client.keys.create_key(
+                    key = self.meili_client.keys.create_key(
                         {
                             "description": arguments.get("description"),
                             "actions": arguments["actions"],
@@ -570,7 +570,7 @@ class MeilisearchMCPServer:
                     ]
 
                 elif name == "delete-key":
-                    await self.meili_client.keys.delete_key(arguments["key"])
+                    self.meili_client.keys.delete_key(arguments["key"])
                     return [
                         types.TextContent(
                             type="text",
@@ -579,7 +579,7 @@ class MeilisearchMCPServer:
                     ]
 
                 elif name == "get-health-status":
-                    status = await self.meili_client.monitoring.get_health_status()
+                    status = self.meili_client.monitoring.get_health_status()
                     self.logger.info("Health status checked", status=status.__dict__)
                     return [
                         types.TextContent(
@@ -589,7 +589,7 @@ class MeilisearchMCPServer:
                     ]
 
                 elif name == "get-index-metrics":
-                    metrics = await self.meili_client.monitoring.get_index_metrics(
+                    metrics = self.meili_client.monitoring.get_index_metrics(
                         arguments["indexUid"]
                     )
                     self.logger.info(
@@ -605,7 +605,7 @@ class MeilisearchMCPServer:
                     ]
 
                 elif name == "get-system-info":
-                    info = await self.meili_client.monitoring.get_system_information()
+                    info = self.meili_client.monitoring.get_system_information()
                     self.logger.info("System information retrieved", info=info)
                     return [
                         types.TextContent(
@@ -642,7 +642,7 @@ class MeilisearchMCPServer:
                 ),
             )
 
-    async def cleanup(self):
+    def cleanup(self):
         """Clean shutdown"""
         self.logger.info("Shutting down MCP server")
         self.logger.shutdown()
