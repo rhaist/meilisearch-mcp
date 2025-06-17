@@ -9,6 +9,7 @@ from .settings import SettingsManager
 from .keys import KeyManager
 from .logging import MCPLogger
 from .monitoring import MonitoringManager
+from .__version__ import __version__
 
 logger = MCPLogger()
 
@@ -20,7 +21,10 @@ class MeilisearchClient:
         """Initialize Meilisearch client"""
         self.url = url
         self.api_key = api_key
-        self.client = Client(url, api_key)
+        # Add custom user agent to identify this as Meilisearch MCP
+        self.client = Client(
+            url, api_key, client_agents=("meilisearch-mcp", f"v{__version__}")
+        )
         self.indexes = IndexManager(self.client)
         self.documents = DocumentManager(self.client)
         self.settings = SettingsManager(self.client)
