@@ -157,19 +157,6 @@ docker run -it \
   meilisearch/meilisearch-mcp:latest
 ```
 
-#### Using Docker Compose
-
-```bash
-# Option 1: Use pre-built images (requires Docker Hub image to exist)
-curl -O https://raw.githubusercontent.com/meilisearch/meilisearch-mcp/main/docker-compose.prod.yml
-docker compose -f docker-compose.prod.yml up -d
-
-# Option 2: Build from source
-git clone https://github.com/meilisearch/meilisearch-mcp.git
-cd meilisearch-mcp
-docker compose up -d
-```
-
 #### Build from Source
 
 ```bash
@@ -181,11 +168,12 @@ docker run -it \
   meilisearch-mcp
 ```
 
-For n8n integration, use the Docker image in your workflow:
+#### Integration with n8n
+
+For n8n workflows, you can use the Docker image directly in your setup:
 ```yaml
-# Example n8n docker-compose service
 meilisearch-mcp:
-  image: meilisearch-mcp:latest
+  image: meilisearch/meilisearch-mcp:latest
   environment:
     - MEILI_HTTP_ADDR=http://meilisearch:7700
     - MEILI_MASTER_KEY=masterKey
