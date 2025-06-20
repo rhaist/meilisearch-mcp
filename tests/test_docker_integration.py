@@ -29,17 +29,17 @@ def wait_for_service(url, timeout=30):
 def docker_services():
     """Start Docker services for testing."""
     # Start services
-    subprocess.run(["docker-compose", "up", "-d"], check=True)
+    subprocess.run(["docker", "compose", "up", "-d"], check=True)
     
     # Wait for Meilisearch to be ready
     if not wait_for_service("http://localhost:7700"):
-        subprocess.run(["docker-compose", "down"], check=True)
+        subprocess.run(["docker", "compose", "down"], check=True)
         pytest.fail("Meilisearch failed to start")
     
     yield
     
     # Cleanup
-    subprocess.run(["docker-compose", "down", "-v"], check=True)
+    subprocess.run(["docker", "compose", "down", "-v"], check=True)
 
 
 def test_docker_build():
@@ -57,7 +57,7 @@ def test_meilisearch_connectivity(docker_services):
     # Run a simple connectivity test in the container
     result = subprocess.run(
         [
-            "docker-compose", "run", "--rm", "meilisearch-mcp",
+            "docker", "compose", "run", "--rm", "meilisearch-mcp",
             "python", "-c",
             """
 import os
@@ -80,7 +80,7 @@ def test_mcp_server_import(docker_services):
     """Test that the MCP server module can be imported in the container."""
     result = subprocess.run(
         [
-            "docker-compose", "run", "--rm", "meilisearch-mcp",
+            "docker", "compose", "run", "--rm", "meilisearch-mcp",
             "python", "-c",
             """
 import src.meilisearch_mcp
@@ -100,7 +100,7 @@ def test_environment_variables(docker_services):
     """Test that environment variables are correctly set in the container."""
     result = subprocess.run(
         [
-            "docker-compose", "run", "--rm", "meilisearch-mcp",
+            "docker", "compose", "run", "--rm", "meilisearch-mcp",
             "python", "-c",
             """
 import os
