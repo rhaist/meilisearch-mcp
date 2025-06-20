@@ -145,16 +145,16 @@ Perfect for containerized environments like n8n workflows!
 
 ```bash
 # Pull the latest image
-docker pull meilisearch/meilisearch-mcp:latest
+docker pull getmeili/meilisearch-mcp:latest
 
 # Or a specific version
-docker pull meilisearch/meilisearch-mcp:0.5.0
+docker pull getmeili/meilisearch-mcp:0.5.0
 
 # Run the container
 docker run -it \
   -e MEILI_HTTP_ADDR=http://your-meilisearch:7700 \
   -e MEILI_MASTER_KEY=your-master-key \
-  meilisearch/meilisearch-mcp:latest
+  getmeili/meilisearch-mcp:latest
 ```
 
 #### Build from Source
@@ -173,7 +173,7 @@ docker run -it \
 For n8n workflows, you can use the Docker image directly in your setup:
 ```yaml
 meilisearch-mcp:
-  image: meilisearch/meilisearch-mcp:latest
+  image: getmeili/meilisearch-mcp:latest
   environment:
     - MEILI_HTTP_ADDR=http://meilisearch:7700
     - MEILI_MASTER_KEY=masterKey

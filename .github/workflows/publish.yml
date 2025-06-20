@@ -80,7 +80,7 @@ jobs:
         id: meta
         uses: docker/metadata-action@v5
         with:
-          images: meilisearch/meilisearch-mcp
+          images: getmeili/meilisearch-mcp
           tags: |
             type=raw,value=${{ needs.check-version.outputs.new_version }}
             type=raw,value=latest
