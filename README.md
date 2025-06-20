@@ -137,6 +137,32 @@ source .venv/bin/activate  # On Windows: .venv\Scripts\activate
 uv pip install -e .
 ```
 
+### Using Docker
+
+Perfect for containerized environments like n8n workflows!
+
+```bash
+# Using Docker Compose (includes Meilisearch)
+docker-compose up -d
+
+# Or build and run standalone
+docker build -t meilisearch-mcp .
+docker run -it \
+  -e MEILI_HTTP_ADDR=http://your-meilisearch:7700 \
+  -e MEILI_MASTER_KEY=your-master-key \
+  meilisearch-mcp
+```
+
+For n8n integration, use the Docker image in your workflow:
+```yaml
+# Example n8n docker-compose service
+meilisearch-mcp:
+  image: meilisearch-mcp:latest
+  environment:
+    - MEILI_HTTP_ADDR=http://meilisearch:7700
+    - MEILI_MASTER_KEY=masterKey
+```
+
 ## 🛠️ What Can You Do?
 
 <details>
