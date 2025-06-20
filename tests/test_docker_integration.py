@@ -9,6 +9,35 @@ import subprocess
 import time
 import pytest
 import requests
+import shutil
+
+
+# Check if Docker is available
+def docker_available():
+    """Check if Docker is available on the system."""
+    if not shutil.which("docker"):
+        return False
+    # Also check if docker-compose.yml exists
+    if not os.path.exists("docker-compose.yml"):
+        return False
+    # Try to run docker version to ensure it's working
+    try:
+        result = subprocess.run(
+            ["docker", "version"],
+            capture_output=True,
+            text=True,
+            timeout=5
+        )
+        return result.returncode == 0
+    except (subprocess.TimeoutExpired, FileNotFoundError):
+        return False
+
+
+# Skip all tests in this module if Docker is not available
+pytestmark = pytest.mark.skipif(
+    not docker_available(),
+    reason="Docker not available on this system or docker-compose.yml not found"
+)
 
 
 def wait_for_service(url, timeout=30):
