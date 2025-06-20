@@ -14,26 +14,24 @@
 <p align="center">
   <a href="https://pypi.org/project/meilisearch-mcp/"><img src="https://img.shields.io/pypi/v/meilisearch-mcp.svg" alt="PyPI version"></a>
   <a href="https://pypi.org/project/meilisearch-mcp/"><img src="https://img.shields.io/pypi/pyversions/meilisearch-mcp.svg" alt="Python Versions"></a>
-  <a href="https://github.com/meilisearch/meilisearch-mcp/actions"><img src="https://github.com/meilisearch/meilisearch-mcp/workflows/Tests/badge.svg" alt="Tests"></a>
+  <a href="https://github.com/meilisearch/meilisearch-mcp/actions"><img src="https://github.com/meilisearch/meilisearch-mcp/workflows/Test%20and%20Lint/badge.svg" alt="Tests"></a>
   <a href="https://github.com/meilisearch/meilisearch-mcp/blob/main/LICENSE"><img src="https://img.shields.io/badge/license-MIT-informational" alt="License"></a>
   <a href="https://pypi.org/project/meilisearch-mcp/"><img src="https://img.shields.io/pypi/dm/meilisearch-mcp" alt="Downloads"></a>
 </p>
 
-<p align="center">⚡ Connect Claude to Meilisearch and supercharge your AI with lightning-fast search capabilities! 🔍</p>
-
-<p align="center">
-  <a href="https://glama.ai/mcp/servers/tbc3n51jja"><img width="380" height="200" src="https://glama.ai/mcp/servers/tbc3n51jja/badge" alt="Meilisearch Server MCP server" /></a>
-</p>
+<p align="center">⚡ Connect any LLM to Meilisearch and supercharge your AI with lightning-fast search capabilities! 🔍</p>
 
 ## 🤔 What is this?
 
-The Meilisearch MCP Server bridges the gap between Claude (Anthropic's AI assistant) and Meilisearch (the lightning-fast search engine). With this integration, Claude can directly manage your search indices, perform searches, and handle your data - all through natural conversation!
+The Meilisearch MCP Server is a Model Context Protocol server that enables any MCP-compatible client (including Claude, OpenAI agents, and other LLMs) to interact with Meilisearch. This stdio-based server allows AI assistants to manage search indices, perform searches, and handle your data through natural conversation.
 
 **Why use this?**
-- 🗣️ **Natural Language Control** - Manage Meilisearch through conversation with Claude
+- 🤖 **Universal Compatibility** - Works with any MCP client, not just Claude
+- 🗣️ **Natural Language Control** - Manage Meilisearch through conversation with any LLM
 - 🚀 **Zero Learning Curve** - No need to learn Meilisearch's API
 - 🔧 **Full Feature Access** - All Meilisearch capabilities at your fingertips
 - 🔄 **Dynamic Connections** - Switch between Meilisearch instances on the fly
+- 📡 **stdio Transport** - Currently uses stdio; native Meilisearch MCP support coming soon!
 
 ## ✨ Key Features
 
@@ -85,28 +83,28 @@ brew install meilisearch
 meilisearch
 ```
 
-That's it! Now you can ask Claude to search and manage your Meilisearch data! 🎉
+That's it! Now you can ask your AI assistant to search and manage your Meilisearch data! 🎉
 
 ## 📚 Examples
 
-### 💬 Talk to Claude naturally:
+### 💬 Talk to your AI assistant naturally:
 
 ```
 You: "Create a new index called 'products' with 'id' as the primary key"
-Claude: I'll create that index for you... ✓ Index 'products' created successfully!
+AI: I'll create that index for you... ✓ Index 'products' created successfully!
 
 You: "Add some products to the index"
-Claude: I'll add those products... ✓ Added 5 documents to 'products' index
+AI: I'll add those products... ✓ Added 5 documents to 'products' index
 
 You: "Search for products under $50 with 'electronics' in the category"
-Claude: I'll search for those products... Found 12 matching products!
+AI: I'll search for those products... Found 12 matching products!
 ```
 
 ### 🔍 Advanced Search Example:
 
 ```
 You: "Search across all my indices for 'machine learning' and sort by date"
-Claude: Searching across all indices... Found 47 results from 3 indices:
+AI: Searching across all indices... Found 47 results from 3 indices:
 - 'blog_posts': 23 articles about ML
 - 'documentation': 15 technical guides  
 - 'tutorials': 9 hands-on tutorials
@@ -118,7 +116,7 @@ Claude: Searching across all indices... Found 47 results from 3 indices:
 
 - Python ≥ 3.9
 - Running Meilisearch instance
-- Claude Desktop app
+- MCP-compatible client (Claude Desktop, OpenAI agents, etc.)
 
 ### From PyPI
 
