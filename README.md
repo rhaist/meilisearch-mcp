@@ -160,12 +160,14 @@ docker run -it \
 #### Using Docker Compose
 
 ```bash
-# Clone the repository for docker-compose.yml
+# Option 1: Use pre-built images (requires Docker Hub image to exist)
+curl -O https://raw.githubusercontent.com/meilisearch/meilisearch-mcp/main/docker-compose.prod.yml
+docker compose -f docker-compose.prod.yml up -d
+
+# Option 2: Build from source
 git clone https://github.com/meilisearch/meilisearch-mcp.git
 cd meilisearch-mcp
-
-# Start both Meilisearch and MCP server
-docker-compose up -d
+docker compose up -d
 ```
 
 #### Build from Source

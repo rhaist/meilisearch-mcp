@@ -67,3 +67,6 @@ logs/
 # Test data
 tests/
 data.ms/
+
+# Docker compose files
+docker-compose*.yml
