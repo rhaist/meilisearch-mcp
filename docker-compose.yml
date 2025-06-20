@@ -12,7 +12,9 @@ services:
       - meilisearch-network
 
   meilisearch-mcp:
-    build: .
+    image: meilisearch/meilisearch-mcp:latest
+    # To build locally instead, comment the line above and uncomment:
+    # build: .
     environment:
       - MEILI_HTTP_ADDR=http://meilisearch:7700
       - MEILI_MASTER_KEY=masterKey

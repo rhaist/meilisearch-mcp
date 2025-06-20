@@ -141,11 +141,37 @@ uv pip install -e .
 
 Perfect for containerized environments like n8n workflows!
 
-```bash
-# Using Docker Compose (includes Meilisearch)
-docker-compose up -d
+#### From Docker Hub (Recommended)
 
-# Or build and run standalone
+```bash
+# Pull the latest image
+docker pull meilisearch/meilisearch-mcp:latest
+
+# Or a specific version
+docker pull meilisearch/meilisearch-mcp:0.5.0
+
+# Run the container
+docker run -it \
+  -e MEILI_HTTP_ADDR=http://your-meilisearch:7700 \
+  -e MEILI_MASTER_KEY=your-master-key \
+  meilisearch/meilisearch-mcp:latest
+```
+
+#### Using Docker Compose
+
+```bash
+# Clone the repository for docker-compose.yml
+git clone https://github.com/meilisearch/meilisearch-mcp.git
+cd meilisearch-mcp
+
+# Start both Meilisearch and MCP server
+docker-compose up -d
+```
+
+#### Build from Source
+
+```bash
+# Build your own image
 docker build -t meilisearch-mcp .
 docker run -it \
   -e MEILI_HTTP_ADDR=http://your-meilisearch:7700 \
