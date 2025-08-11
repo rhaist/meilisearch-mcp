@@ -25,4 +25,4 @@ ENV MEILI_HTTP_ADDR=http://meilisearch:7700
 ENV MEILI_MASTER_KEY=""
 
 # Run the MCP server
-CMD ["python", "-m", "src.meilisearch_mcp"]
+CMD ["uv", "run", "python", "-m", "src.meilisearch_mcp"]
