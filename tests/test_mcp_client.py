@@ -577,8 +577,8 @@ class TestIssue23DeleteIndexTool:
         """Test input validation for delete-index tool (issue #23)"""
         # Test missing uid parameter
         result = await simulate_mcp_call(mcp_server, "delete-index", {})
-        response_text = assert_text_content_response(result, "Error:")
-        assert "Error:" in response_text
+        response_text = assert_text_content_response(result, "error:")
+        assert "error:" in response_text
 
     async def test_delete_index_integration_workflow(self, mcp_server):
         """Test complete workflow: create -> add docs -> search -> delete (issue #23)"""

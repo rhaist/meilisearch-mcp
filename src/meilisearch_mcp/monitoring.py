@@ -36,7 +36,7 @@ class MonitoringManager:
         """Get comprehensive health status"""
         try:
             # Get various stats to build health picture
-            stats = self.client.get_stats()
+            stats = self.client.get_all_stats()
             indexes = self.client.get_indexes()
 
             indexes_info = []

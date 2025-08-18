@@ -1,7 +1,7 @@
 import logging
 import sys
 import json
-from datetime import datetime
+from datetime import datetime, timezone
 from pathlib import Path
 from typing import Optional, Dict, Any
 import threading
@@ -97,7 +97,7 @@ class MCPLogger:
     def _log(self, level: str, msg: str, **kwargs):
         """Create structured log entry"""
         log_entry = {
-            "timestamp": datetime.utcnow().isoformat(),
+            "timestamp": datetime.now(timezone.utc).isoformat(),
             "level": level,
             "message": msg,
             **kwargs,

@@ -3,6 +3,7 @@ Integration tests for Docker image build.
 
 These tests verify that the Docker image can be built successfully.
 """
+
 import subprocess
 import pytest
 import shutil
@@ -16,10 +17,7 @@ def docker_available():
     # Try to run docker version to ensure it's working
     try:
         result = subprocess.run(
-            ["docker", "version"],
-            capture_output=True,
-            text=True,
-            timeout=5
+            ["docker", "version"], capture_output=True, text=True, timeout=5
         )
         return result.returncode == 0
     except (subprocess.TimeoutExpired, FileNotFoundError):
@@ -28,8 +26,7 @@ def docker_available():
 
 # Skip all tests in this module if Docker is not available
 pytestmark = pytest.mark.skipif(
-    not docker_available(),
-    reason="Docker not available on this system"
+    not docker_available(), reason="Docker not available on this system"
 )
 
 
@@ -38,7 +35,7 @@ def test_docker_build():
     result = subprocess.run(
         ["docker", "build", "-t", "meilisearch-mcp-test", "."],
         capture_output=True,
-        text=True
+        text=True,
     )
     assert result.returncode == 0, f"Docker build failed: {result.stderr}"
 
@@ -49,25 +46,31 @@ def test_docker_image_runs():
     build_result = subprocess.run(
         ["docker", "build", "-t", "meilisearch-mcp-test", "."],
         capture_output=True,
-        text=True
+        text=True,
     )
     if build_result.returncode != 0:
         pytest.skip(f"Docker build failed: {build_result.stderr}")
-    
+
     # Try to run the container and check it starts
     result = subprocess.run(
         [
-            "docker", "run", "--rm",
-            "-e", "MEILI_HTTP_ADDR=http://localhost:7700",
-            "-e", "MEILI_MASTER_KEY=test",
+            "docker",
+            "run",
+            "--rm",
+            "-e",
+            "MEILI_HTTP_ADDR=http://localhost:7700",
+            "-e",
+            "MEILI_MASTER_KEY=test",
             "meilisearch-mcp-test",
-            "python", "-c", "import src.meilisearch_mcp; print('MCP module loaded successfully')"
+            "python",
+            "-c",
+            "import src.meilisearch_mcp; print('MCP module loaded successfully')",
         ],
         capture_output=True,
         text=True,
-        timeout=30
+        timeout=30,
     )
-    
+
     assert result.returncode == 0, f"Docker run failed: {result.stderr}"
     assert "MCP module loaded successfully" in result.stdout
 
