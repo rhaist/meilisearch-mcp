@@ -9,6 +9,7 @@ from mcp.server.models import InitializationOptions
 import mcp.server.stdio
 
 from .client import MeilisearchClient
+from .chat import ChatManager
 from .logging import MCPLogger
 
 logger = MCPLogger()
@@ -47,6 +48,7 @@ class MeilisearchMCPServer:
         self.url = url
         self.api_key = api_key
         self.meili_client = MeilisearchClient(url, api_key)
+        self.chat_manager = ChatManager(self.meili_client.client)
         self.server = Server("meilisearch")
         self._setup_handlers()
 
@@ -60,6 +62,7 @@ class MeilisearchMCPServer:
             self.api_key = api_key
 
         self.meili_client = MeilisearchClient(self.url, self.api_key)
+        self.chat_manager = ChatManager(self.meili_client.client)
         self.logger.info("Updated Meilisearch connection settings", url=self.url)
 
     def _setup_handlers(self):
@@ -361,6 +364,99 @@ class MeilisearchMCPServer:
                         "additionalProperties": False,
                     },
                 ),
+                types.Tool(
+                    name="create-chat-completion",
+                    description="Create a conversational chat completion using Meilisearch's chat feature",
+                    inputSchema={
+                        "type": "object",
+                        "properties": {
+                            "workspace_uid": {
+                                "type": "string",
+                                "description": "Unique identifier of the chat workspace",
+                            },
+                            "messages": {
+                                "type": "array",
+                                "items": {
+                                    "type": "object",
+                                    "properties": {
+                                        "role": {
+                                            "type": "string",
+                                            "enum": ["user", "assistant", "system"],
+                                        },
+                                        "content": {"type": "string"},
+                                    },
+                                    "required": ["role", "content"],
+                                },
+                                "description": "List of message objects comprising the chat history",
+                            },
+                            "model": {
+                                "type": "string",
+                                "default": "gpt-3.5-turbo",
+                                "description": "The model to use for completion",
+                            },
+                            "stream": {
+                                "type": "boolean",
+                                "default": True,
+                                "description": "Whether to stream the response (currently must be true)",
+                            },
+                        },
+                        "required": ["workspace_uid", "messages"],
+                        "additionalProperties": False,
+                    },
+                ),
+                types.Tool(
+                    name="get-chat-workspaces",
+                    description="Get list of available chat workspaces",
+                    inputSchema={
+                        "type": "object",
+                        "properties": {
+                            "offset": {
+                                "type": "integer",
+                                "description": "Number of workspaces to skip",
+                            },
+                            "limit": {
+                                "type": "integer",
+                                "description": "Maximum number of workspaces to return",
+                            },
+                        },
+                        "additionalProperties": False,
+                    },
+                ),
+                types.Tool(
+                    name="get-chat-workspace-settings",
+                    description="Get settings for a specific chat workspace",
+                    inputSchema={
+                        "type": "object",
+                        "properties": {
+                            "workspace_uid": {
+                                "type": "string",
+                                "description": "Unique identifier of the chat workspace",
+                            },
+                        },
+                        "required": ["workspace_uid"],
+                        "additionalProperties": False,
+                    },
+                ),
+                types.Tool(
+                    name="update-chat-workspace-settings",
+                    description="Update settings for a specific chat workspace",
+                    inputSchema={
+                        "type": "object",
+                        "properties": {
+                            "workspace_uid": {
+                                "type": "string",
+                                "description": "Unique identifier of the chat workspace",
+                            },
+                            "settings": {
+                                "type": "object",
+                                "description": "Settings to update for the workspace",
+                                "additionalProperties": True,
+                            },
+                        },
+                        "required": ["workspace_uid", "settings"],
+                        "additionalProperties": False,
+                    },
+                ),
             ]
 
         @self.server.call_tool()
@@ -608,6 +704,66 @@ class MeilisearchMCPServer:
                     return [
                         types.TextContent(
                             type="text", text=f"System information: {info}"
+                        )
+                    ]
+
+                elif name == "create-chat-completion":
+                    response = await self.chat_manager.create_chat_completion(
+                        workspace_uid=arguments["workspace_uid"],
+                        messages=arguments["messages"],
+                        model=arguments.get("model", "gpt-3.5-turbo"),
+                        stream=arguments.get("stream", True),
+                    )
+                    return [
+                        types.TextContent(
+                            type="text",
+                            text=f"Chat completion response:\n{response}",
+                        )
+                    ]
+
+                elif name == "get-chat-workspaces":
+                    workspaces = await self.chat_manager.get_chat_workspaces(
+                        offset=arguments.get("offset") if arguments else None,
+                        limit=arguments.get("limit") if arguments else None,
+                    )
+                    formatted_json = json.dumps(
+                        workspaces, indent=2, default=json_serializer
+                    )
+                    return [
+                        types.TextContent(
+                            type="text",
+                            text=f"Chat workspaces:\n{formatted_json}",
+                        )
+                    ]
+
+                elif name == "get-chat-workspace-settings":
+                    settings = await self.chat_manager.get_chat_workspace_settings(
+                        workspace_uid=arguments["workspace_uid"]
+                    )
+                    formatted_json = json.dumps(
+                        settings, indent=2, default=json_serializer
+                    )
+                    return [
+                        types.TextContent(
+                            type="text",
+                            text=f"Workspace settings for '{arguments['workspace_uid']}':\n{formatted_json}",
+                        )
+                    ]
+
+                elif name == "update-chat-workspace-settings":
+                    updated_settings = (
+                        await self.chat_manager.update_chat_workspace_settings(
+                            workspace_uid=arguments["workspace_uid"],
+                            settings=arguments["settings"],
+                        )
+                    )
+                    formatted_json = json.dumps(
+                        updated_settings, indent=2, default=json_serializer
+                    )
+                    return [
+                        types.TextContent(
+                            type="text",
+                            text=f"Updated workspace settings for '{arguments['workspace_uid']}':\n{formatted_json}",
                         )
                     ]
 
