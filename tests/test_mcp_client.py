@@ -232,7 +232,7 @@ class TestMCPToolDiscovery:
         tools = await simulate_list_tools(mcp_server)
         tool_names = [tool.name for tool in tools]
 
-        # Complete list of expected tools (22 total)
+        # Complete list of expected tools (26 total - includes 4 new chat tools)
         expected_tools = [
             "get-connection-settings",
             "update-connection-settings",
@@ -256,6 +256,11 @@ class TestMCPToolDiscovery:
             "get-health-status",
             "get-index-metrics",
             "get-system-info",
+            # New chat tools added in v0.6.0
+            "create-chat-completion",
+            "get-chat-workspaces",
+            "get-chat-workspace-settings",
+            "update-chat-workspace-settings",
         ]
 
         assert len(tools) == len(expected_tools)
@@ -294,6 +299,7 @@ class TestMCPToolDiscovery:
                     for word in ["health", "stats", "version", "system", "metrics"]
                 )
             ],
+            "chat": [t for t in tools if "chat" in t.name],
         }
 
         # Verify minimum expected tools per category
@@ -305,6 +311,7 @@ class TestMCPToolDiscovery:
             "task": 2,
             "key": 3,
             "monitoring": 4,
+            "chat": 4,
         }
 
         for category, min_count in expected_counts.items():
