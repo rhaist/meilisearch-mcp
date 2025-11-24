@@ -236,6 +236,8 @@ meilisearch-mcp:
 - Set granular permissions
 - Monitor key usage
 
+⚠️ Note: While you can add and update hosts and API keys directly in chat for convenience, this approach is primarily designed for development use cases (like connecting to multiple instances on the fly). It does not follow best MCP security practices and should not be used in production environments without proper safeguards.
+
 </details>
 
 <details>
