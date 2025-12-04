@@ -76,7 +76,7 @@ Add this to your `claude_desktop_config.json`:
 
 ```bash
 # Using Docker (recommended)
-docker run -d -p 7700:7700 getmeili/meilisearch:v1.6
+docker run -d -p 7700:7700 getmeili/meilisearch:v1.28
 
 # Or using Homebrew
 brew install meilisearch
@@ -106,7 +106,7 @@ AI: I'll search for those products... Found 12 matching products!
 You: "Search across all my indices for 'machine learning' and sort by date"
 AI: Searching across all indices... Found 47 results from 3 indices:
 - 'blog_posts': 23 articles about ML
-- 'documentation': 15 technical guides  
+- 'documentation': 15 technical guides
 - 'tutorials': 9 hands-on tutorials
 ```
 
@@ -265,7 +265,7 @@ MEILI_MASTER_KEY=your_master_key       # Optional: Default API key
 
 1. **Start Meilisearch**:
    ```bash
-   docker run -d -p 7700:7700 getmeili/meilisearch:v1.6
+   docker run -d -p 7700:7700 getmeili/meilisearch:v1.28
    ```
 
 2. **Install Development Dependencies**:
@@ -383,12 +383,12 @@ This project is licensed under the MIT License - see the [LICENSE](LICENSE) file
 1. **Start Meilisearch server**:
    ```bash
    # Using Docker (recommended for development)
-   docker run -d -p 7700:7700 getmeili/meilisearch:v1.6
-   
+   docker run -d -p 7700:7700 getmeili/meilisearch:v1.28
+
    # Or using brew (macOS)
    brew install meilisearch
    meilisearch
-   
+
    # Or download from https://github.com/meilisearch/meilisearch/releases
    ```
 
@@ -396,7 +396,7 @@ This project is licensed under the MIT License - see the [LICENSE](LICENSE) file
    ```bash
    # Install uv for Python package management
    pip install uv
-   
+
    # Install Node.js for MCP Inspector testing
    # Visit https://nodejs.org/ or use your package manager
    ```
@@ -526,7 +526,7 @@ gh pr create --title "Release v0.5.0" --body "Bump version for release"
 Once the PR is approved and merged to `main`, the GitHub Action will automatically:
 
 1. Detect the version change
-2. Build the package  
+2. Build the package
 3. Publish to PyPI at https://pypi.org/p/meilisearch-mcp
 4. Make the new version available via `pip install meilisearch-mcp`
 
