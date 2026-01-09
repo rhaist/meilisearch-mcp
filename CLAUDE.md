@@ -148,7 +148,7 @@ npx @modelcontextprotocol/inspector python -m src.meilisearch_mcp
 
 ### Prerequisites for Testing
 - **Meilisearch server** must be running on `http://localhost:7700`
-- **Docker option**: `docker run -d -p 7700:7700 getmeili/meilisearch:v1.6`
+- **Docker option**: `docker run -d -p 7700:7700 getmeili/meilisearch:v1.28`
 - **Node.js** for MCP Inspector testing
 
 ## Architecture
@@ -159,7 +159,7 @@ The codebase follows a modular architecture where functionality is organized int
 ```
 MeilisearchClient
 ├── IndexManager      - Index creation, listing, deletion
-├── DocumentManager   - Document CRUD operations 
+├── DocumentManager   - Document CRUD operations
 ├── SettingsManager   - Index configuration management
 ├── TaskManager       - Asynchronous task monitoring
 ├── KeyManager        - API key management
@@ -214,7 +214,7 @@ All MCP tools follow a consistent pattern:
 ### Tool Simulation Framework
 Tests use `simulate_tool_call()` function that:
 - Directly invokes server tool handlers
-- Bypasses MCP protocol overhead  
+- Bypasses MCP protocol overhead
 - Returns proper `TextContent` responses
 - Provides comprehensive coverage of all 20+ tools
 - Enables fast test execution without MCP protocol complexity
@@ -242,7 +242,7 @@ Add to `claude_desktop_config.json`:
 {
   "mcpServers": {
     "meilisearch": {
-      "command": "uvx", 
+      "command": "uvx",
       "args": ["-n", "meilisearch-mcp"]
     }
   }
@@ -259,7 +259,7 @@ The repository includes Claude Code integration via GitHub Actions:
 
 ### Core Categories
 - **Connection Management**: Dynamic configuration updates
-- **Index Operations**: CRUD operations for search indices  
+- **Index Operations**: CRUD operations for search indices
 - **Document Management**: Add, retrieve, and manage documents
 - **Search Capabilities**: Single and multi-index search with filtering
 - **Settings Control**: Index configuration and optimization
