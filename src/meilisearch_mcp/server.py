@@ -227,6 +227,13 @@ class MeilisearchMCPServer:
                                 "type": "array",
                                 "items": {"type": "string"},
                             },
+                            "hybrid": {
+                                "type": "object",
+                                "properties": {
+                                    "embedder": {"type": "string", "default": "default"},
+                                    "semanticRatio": {"type": "number"},
+                                },
+                            },
                         },
                         "required": ["query"],
                         "additionalProperties": False,
@@ -592,6 +599,7 @@ class MeilisearchMCPServer:
                         offset=arguments.get("offset"),
                         filter=arguments.get("filter"),
                         sort=arguments.get("sort"),
+                        hybrid=arguments.get("hybrid"),
                     )
 
                     # Format the results for better readability
