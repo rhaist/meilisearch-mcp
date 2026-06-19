@@ -76,7 +76,7 @@ Add this to your `claude_desktop_config.json`:
 
 ```bash
 # Using Docker (recommended)
-docker run -d -p 7700:7700 getmeili/meilisearch:v1.28
+docker run -d -p 7700:7700 getmeili/meilisearch:v1.47
 
 # Or using Homebrew
 brew install meilisearch
@@ -265,7 +265,7 @@ MEILI_MASTER_KEY=your_master_key       # Optional: Default API key
 
 1. **Start Meilisearch**:
    ```bash
-   docker run -d -p 7700:7700 getmeili/meilisearch:v1.28
+   docker run -d -p 7700:7700 getmeili/meilisearch:v1.47
    ```
 
 2. **Install Development Dependencies**:
@@ -383,7 +383,7 @@ This project is licensed under the MIT License - see the [LICENSE](LICENSE) file
 1. **Start Meilisearch server**:
    ```bash
    # Using Docker (recommended for development)
-   docker run -d -p 7700:7700 getmeili/meilisearch:v1.28
+   docker run -d -p 7700:7700 getmeili/meilisearch:v1.47
 
    # Or using brew (macOS)
    brew install meilisearch
